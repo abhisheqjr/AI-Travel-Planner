@@ -1,0 +1,8 @@
+flask
+python-dotenv
+groq
+requests
+langchain-groq
+langchain-core
+langgraph
+pydantic
