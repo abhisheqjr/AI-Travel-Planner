@@ -40,7 +40,6 @@ Conversation memory: Supported via client-provided conversation history.
 
 3. Create a `.env` file in the root folder with the following variables:
    ```env
-   FLASK_SECRET_KEY=your_flask_secret
    GROQ_API_KEY=your_groq_api_key
    SERPAPI_API_KEY=your_serpapi_api_key
    ```
