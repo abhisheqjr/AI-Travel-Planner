@@ -1,8 +1,9 @@
 import os
 import json
 import time
+import re
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -56,6 +57,9 @@ def log(level: str, msg: str, colour: str = C.WHITE) -> None:
     icon = icons.get(level, "[-]")
     label = f"{colour}{C.BOLD}[{level:5s}]{C.RESET}"
     print(f"{ts()} {icon} {label} {colour}{msg}{C.RESET}", flush=True)
+
+def divider(char: str = "=", colour: str = C.WHITE) -> None:
+    print(f"{colour}{char * 80}{C.RESET}", flush=True)
 
 # ---------------------------------------------
 # REAL-TIME SERPAPI TOOL IMPLEMENTATIONS
@@ -155,7 +159,9 @@ def tool_check_route_feasibility(origin: str, destination: str) -> dict:
     if trains_available: summary.append("Trains/Rail transit are possible.")
     if buses_available: summary.append("Road/Bus travel is possible.")
     if ferry_available: summary.append("Ferry/Water travel is possible.")
-    if not summary: summary.append("No standard routes found.")
+    if not summary: summary.append("No standard direct routes found, might require multi-modal transit.")
+
+    log("OK", f"Feasibility: flights={flights_available} trains={trains_available} buses={buses_available} ferry={ferry_available}", C.GREEN)
 
     return {
         "flights_available": flights_available,
@@ -182,19 +188,32 @@ def _fetch_flights_serpapi(dep_code: str, arr_code: str, date: str) -> list:
     try:
         flight_data = serpapi_search(base_params)
         candidates = flight_data.get("best_flights", []) or flight_data.get("other_flights", [])
-        for f in candidates[:3]:
+        for f in candidates[:4]:
             legs = f.get("flights", [])
             if not legs: continue
-            airline = legs[0].get("airline", "Unknown")
+            airline = legs[0].get("airline", "Unknown Airline")
+            total_min = f.get("total_duration", 0)
+            duration  = f"{total_min // 60}h {total_min % 60}m" if total_min else "N/A"
             price = f.get("price", "N/A")
+            dep_time = legs[0].get("departure_airport", {}).get("time", "")
+            arr_time = legs[-1].get("arrival_airport", {}).get("time", "")
+
+            if len(legs) == 1:
+                flight_type = "Direct Flight"
+            else:
+                stopovers = [leg.get("arrival_airport", {}).get("id", "?") for leg in legs[:-1]]
+                flight_type = f"Connecting via {', '.join(stopovers)}"
+
             results.append({
-                "airline": airline,
+                "airline": f"{airline} ({flight_type})",
+                "duration": duration,
                 "price": f"${price}" if isinstance(price, (int, float)) else str(price),
-                "departure": legs[0].get("departure_airport", {}).get("time", ""),
-                "arrival": legs[-1].get("arrival_airport", {}).get("time", "")
+                "departure": dep_time,
+                "arrival": arr_time,
+                "link": f"https://www.google.com/travel/flights?q=Flights+from+{dep_code}+to+{arr_code}+on+{date}"
             })
     except Exception as e:
-        log("WARN", f"Flights call failed: {e}", C.YELLOW)
+        log("WARN", f"Google Flights error [{dep_code}->{arr_code}]: {e}", C.YELLOW)
     return results
 
 @tool
@@ -206,33 +225,88 @@ def tool_fetch_transport_options(
     trains_available: bool = True,
     buses_available: bool = True,
 ) -> dict:
-    """Fetch real-time transport options using SerpAPI."""
+    """Fetch real-time transport options (outbound + return) using SerpAPI."""
+    log("TOOL", f"fetch_transport_options -> '{origin}' to '{destination}' trains={trains_available} buses={buses_available}", C.MAGENTA)
     dep_code = _resolve_iata(origin)
     arr_code = _resolve_iata(destination)
     today = datetime.now()
-    outbound_date = travel_date or (today + timedelta(days=30)).strftime("%Y-%m-%d")
+    default_out = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+    outbound_date = travel_date or default_out
 
     air_out = []
     if dep_code and arr_code:
         air_out = _fetch_flights_serpapi(dep_code, arr_code, outbound_date)
 
+    air_ret = []
+    if return_date and dep_code and arr_code:
+        air_ret = _fetch_flights_serpapi(arr_code, dep_code, return_date)
+
     rail_results = []
     if trains_available:
-        rail_results.append({
-            "name": f"Train: {origin} to {destination}",
-            "duration": "Check local rail portal",
-            "price": "Varies by class"
-        })
+        try:
+            train_data = serpapi_search({
+                "engine": "google",
+                "q": f"{origin} to {destination} train schedule fare",
+                "hl": "en",
+                "gl": "us",
+                "num": 5
+            })
+            for r in train_data.get("organic_results", [])[:3]:
+                rail_results.append({
+                    "name": r.get("title", "Train Service"),
+                    "duration": "Check local timetables",
+                    "price": "Varies by class",
+                    "details": r.get("snippet", ""),
+                    "link": r.get("link", "")
+                })
+            if not rail_results:
+                rail_results.append({
+                    "name": f"Train: {origin} to {destination}",
+                    "duration": "Check local rail portal",
+                    "price": "Varies"
+                })
+        except Exception as e:
+            log("WARN", f"Train search failed: {e}", C.YELLOW)
 
     road_results = []
     if buses_available:
-        road_results.append({
-            "type": "Bus / Cab",
-            "duration": "Check local operators",
-            "price": "Varies"
-        })
+        try:
+            bus_data = serpapi_search({
+                "engine": "google",
+                "q": f"{origin} to {destination} bus route schedule taxi cab fare",
+                "hl": "en",
+                "gl": "us",
+                "num": 5
+            })
+            for r in bus_data.get("organic_results", [])[:3]:
+                road_results.append({
+                    "type": "Bus / Cab",
+                    "duration": "Route & traffic dependent",
+                    "price": "Varies by operator",
+                    "operator": r.get("title", "Road operator"),
+                    "details": r.get("snippet", ""),
+                    "link": r.get("link", "")
+                })
+            if not road_results:
+                road_results.append({
+                    "type": "Bus / Private Taxi",
+                    "duration": "Check local schedules",
+                    "price": "Varies"
+                })
+        except Exception as e:
+            log("WARN", f"Road transport search failed: {e}", C.YELLOW)
 
     return {
+        "outbound": {
+            "air": air_out,
+            "rail": rail_results,
+            "road": road_results
+        },
+        "return": {
+            "air": air_ret,
+            "rail": rail_results if trains_available else [],
+            "road": road_results if buses_available else []
+        },
         "air": air_out,
         "rail": rail_results,
         "road": road_results
@@ -241,97 +315,177 @@ def tool_fetch_transport_options(
 @tool
 def tool_fetch_accommodations(location: str, budget: str, check_in: str = "", check_out: str = "") -> dict:
     """Fetches real-time hotel and accommodation options from Google Hotels via SerpAPI."""
+    log("TOOL", f"fetch_accommodations -> location='{location}' budget='{budget}'", C.MAGENTA)
     today = datetime.now()
+    default_in = (today + timedelta(days=30)).strftime("%Y-%m-%d")
+    default_out = (today + timedelta(days=35)).strftime("%Y-%m-%d")
+
     params = {
         "engine": "google_hotels",
         "q": f"hotels in {location}",
-        "check_in_date": check_in or (today + timedelta(days=30)).strftime("%Y-%m-%d"),
-        "check_out_date": check_out or (today + timedelta(days=35)).strftime("%Y-%m-%d"),
+        "check_in_date": check_in or default_in,
+        "check_out_date": check_out or default_out,
         "currency": "USD",
+        "gl": "us",
+        "hl": "en"
     }
     data = serpapi_search(params)
     properties = data.get("properties", []) or data.get("hotels", [])
     results = []
-    for h in properties[:4]:
+    for h in properties[:6]:
         name = h.get("name") or h.get("title", "")
         if not name: continue
         price_info = h.get("rate_per_night") or h.get("prices", [{}])[0] if h.get("prices") else {}
         price = price_info.get("lowest") or price_info.get("rate") or "N/A"
+        image_url = ""
+        images = h.get("images") or h.get("photos", [])
+        if images and isinstance(images, list):
+            image_url = images[0].get("thumbnail") or images[0].get("url", "")
+            
+        maps_link = f"https://www.google.com/maps/search/?api=1&query={requests.utils.quote(name)}+{requests.utils.quote(location)}"
+        stars = str(h.get("class_rating") or "3-4")
+        amenities = h.get("amenities", [])
+        if not amenities:
+            amenities = ["Free Wi-Fi", "Air Conditioning", "Comfortable beds"]
+
         results.append({
             "name": name,
-            "location": h.get("neighborhood") or location,
+            "location": h.get("neighborhood") or h.get("address", location),
             "price": str(price),
-            "rating": str(h.get("overall_rating") or "N/A"),
-            "amenities": (h.get("amenities", [])[:3])
+            "rating": str(h.get("overall_rating") or h.get("rating", "N/A")),
+            "reviews": f"{h.get('reviews', 0)} reviews",
+            "description": h.get("description") or f"A lovely hotel in {location}.",
+            "image": image_url,
+            "stars": stars,
+            "amenities": amenities[:4],
+            "google_maps_link": maps_link
         })
+    log("OK", f"Hotels found: {len(results)}", C.GREEN)
     return {"hotels": results, "location": location, "budget": budget}
 
 @tool
 def tool_fetch_restaurants(location: str, cuisine_preferences: str = "") -> dict:
     """Fetches top-rated restaurants, cafes, and dining options via Google Maps SerpAPI."""
+    log("TOOL", f"fetch_restaurants -> location='{location}' cuisine='{cuisine_preferences}'", C.MAGENTA)
     query = f"best restaurants {cuisine_preferences} in {location}".strip()
     params = {
         "engine": "google_maps",
         "q": query,
         "type": "search",
+        "hl": "en",
+        "gl": "us"
     }
     data = serpapi_search(params)
     places = data.get("local_results", [])
     results = []
-    for r in places[:4]:
+    for r in places[:6]:
         name = r.get("title") or r.get("name", "")
         if not name: continue
+        maps_link = f"https://www.google.com/maps/search/?api=1&query={requests.utils.quote(name)}+{requests.utils.quote(r.get('address', location))}"
+        
+        desc = r.get("description") or r.get("snippet", "")
+        famous_dish = "Signature Platter"
+        keywords = ["biryani", "seafood", "fish", "curry", "dosa", "pasta", "pizza", "burger", "steak", "sushi", "croissant"]
+        for kw in keywords:
+            if kw in desc.lower():
+                famous_dish = kw.capitalize()
+                break
+
         results.append({
             "restaurant": name,
             "rating": str(r.get("rating", "N/A")),
+            "reviews": str(r.get("reviews", "")),
             "type": r.get("type", "Restaurant"),
             "address": r.get("address", location),
-            "description": r.get("description") or r.get("snippet", "")
+            "price_range": r.get("price", "$$"),
+            "famous_dish": famous_dish,
+            "description": desc or f"A popular dining spot in {location}.",
+            "image": r.get("thumbnail", ""),
+            "google_maps_link": maps_link
         })
+    log("OK", f"Restaurants found: {len(results)}", C.GREEN)
     return {"restaurants": results, "location": location}
 
 @tool
 def tool_fetch_attractions(location: str, interests: str = "", duration_days: int = 5) -> dict:
     """Fetches top tourist attractions, activities, and points of interest via Google Maps SerpAPI."""
+    log("TOOL", f"fetch_attractions -> location='{location}' interests='{interests}'", C.MAGENTA)
     query = f"top tourist attractions {interests} in {location}".strip()
     params = {
         "engine": "google_maps",
         "q": query,
         "type": "search",
+        "hl": "en",
+        "gl": "us"
     }
     data = serpapi_search(params)
     places = data.get("local_results", [])
     results = []
-    for a in places[:5]:
+    for a in places[:8]:
         name = a.get("title") or a.get("name", "")
         if not name: continue
+        maps_link = f"https://www.google.com/maps/search/?api=1&query={requests.utils.quote(name)}+{requests.utils.quote(a.get('address', location))}"
+        
+        desc = a.get("description") or a.get("snippet", "")
+        highlights = ["Sightseeing", "Photography"]
+        if "museum" in desc.lower() or "art" in desc.lower():
+            highlights = ["Art Exhibits", "Guided Tours"]
+        elif "beach" in desc.lower() or "nature" in desc.lower():
+            highlights = ["Scenic Views", "Sunset Watching"]
+            
+        entry_fee = "Free Entry"
+        if "ticket" in desc.lower() or "admission" in desc.lower():
+            entry_fee = "Paid Admission"
+
         results.append({
             "name": name,
             "rating": str(a.get("rating", "N/A")),
+            "reviews": str(a.get("reviews", "")),
             "type": a.get("type", "Attraction"),
-            "description": a.get("description") or a.get("snippet", "")
+            "address": a.get("address", location),
+            "highlights": highlights,
+            "entry_fee": entry_fee,
+            "description": desc or f"A must-visit spot in {location}.",
+            "image": a.get("thumbnail", ""),
+            "google_maps_link": maps_link
         })
+    log("OK", f"Attractions found: {len(results)}", C.GREEN)
     return {"attractions": results, "location": location}
 
 @tool
 def tool_search_travel_info(query: str) -> dict:
     """Searches Google for general travel information, local customs, visa details, or weather."""
+    log("TOOL", f"search_travel_info -> query='{query}'", C.MAGENTA)
     params = {
         "engine": "google",
         "q": query,
+        "hl": "en",
+        "gl": "us",
+        "num": 5
     }
     data = serpapi_search(params)
     organic = data.get("organic_results", [])
-    results = [{"title": r.get("title"), "snippet": r.get("snippet")} for r in organic[:3]]
-    return {"query": query, "results": results}
+    results = [{"title": r.get("title"), "snippet": r.get("snippet"), "link": r.get("link")} for r in organic[:4]]
+    return {"query": query, "results": results, "answer": data.get("answer_box", {})}
 
 @tool
 def tool_generate_detailed_plan(destination: str, duration_days: int, budget: str, interests: str, transport_summary: str, stay_summary: str, food_summary: str, attraction_summary: str) -> dict:
     """Generates the final comprehensive day-by-day travel itinerary JSON using the gathered tool data."""
+    log("TOOL", f"generate_detailed_plan -> destination='{destination}' days={duration_days}", C.MAGENTA)
     client = Groq(api_key=GROQ_API_KEY)
+    
+    length_constraint = ""
+    if duration_days > 5:
+        length_constraint = f"\n- CRITICAL: Since this is a long trip ({duration_days} days), you MUST keep the activity, food, and transport text fields concise (maximum 15-20 words each) to avoid output token limit truncation (4096 tokens)."
+
     prompt = f"""You are an elite travel concierge. Generate a detailed day-by-day plan for a {duration_days}-day trip to {destination}.
 Budget: {budget}
 Interests: {interests}
+Transport context: {transport_summary}
+Stays available: {stay_summary}
+Dining available: {food_summary}
+Attractions available: {attraction_summary}
+{length_constraint}
 
 Output a JSON list matching this schema:
 [
@@ -346,6 +500,7 @@ Output a JSON list matching this schema:
   }}
 ]
 Return ONLY the JSON list inside a ```json ``` block."""
+
     response = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
@@ -353,23 +508,121 @@ Return ONLY the JSON list inside a ```json ``` block."""
     )
     content = response.choices[0].message.content or ""
     try:
+        json_str = ""
         if "```json" in content:
-            json_start = content.index("```json") + 7
-            json_end = content.index("```", json_start)
-            json_str = content[json_start:json_end].strip()
+            json_start = content.find("```json") + 7
+            json_end = content.find("```", json_start)
+            if json_end != -1:
+                json_str = content[json_start:json_end].strip()
+            else:
+                json_str = content[json_start:].strip()
+        elif "```" in content:
+            json_start = content.find("```") + 3
+            json_end = content.find("```", json_start)
+            if json_end != -1:
+                json_str = content[json_start:json_end].strip()
+            else:
+                json_str = content[json_start:].strip()
         else:
             json_start = content.find("[")
             json_end = content.rfind("]") + 1
-            json_str = content[json_start:json_end].strip()
-        return {"days": json.loads(json_str)}
-    except Exception:
+            if json_start != -1 and json_end != 0:
+                json_str = content[json_start:json_end].strip()
+            else:
+                json_str = content.strip()
+                
+        try:
+            days = json.loads(json_str)
+        except Exception as je:
+            # Fallback: Extract completed day objects by balancing braces
+            day_objects = []
+            brace_count = 0
+            start_pos = -1
+            for pos, char in enumerate(content):
+                if char == '{':
+                    if brace_count == 0:
+                        start_pos = pos
+                    brace_count += 1
+                elif char == '}':
+                    if brace_count > 0:
+                        brace_count -= 1
+                        if brace_count == 0 and start_pos != -1:
+                            candidate = content[start_pos:pos+1]
+                            if '"day"' in candidate or "'day'" in candidate:
+                                try:
+                                    day_obj = json.loads(candidate)
+                                    day_objects.append(day_obj)
+                                except Exception:
+                                    pass
+            if day_objects:
+                return {"days": day_objects}
+            raise je
+
+        return {"days": days}
+    except Exception as e:
+        log("ERROR", f"Failed to parse generated detailed plan: {e}", C.RED)
         return {"days": [], "raw_text": content}
+
+# ---------------------------------------------
+# BUDGET CLASSIFIER HELPER
+# ---------------------------------------------
+def _classify_budget_tier(origin: str, destination: str, duration_days: int, travelers: int, raw_budget: str, api_key: str) -> str:
+    clean = str(raw_budget).strip().lower()
+    if not any(char.isdigit() for char in clean):
+        if any(kw in clean for kw in ["low", "budget"]):
+            return "low budget"
+        if any(kw in clean for kw in ["luxury", "high", "premium"]):
+            return "luxury"
+        if any(kw in clean for kw in ["mid", "medium", "standard", "moderate"]):
+            return "mid budget"
+            
+    try:
+        client = Groq(api_key=api_key)
+        prompt = f"""You are a travel budget analyst. A user is planning a trip:
+- Origin: {origin}
+- Destination: {destination}
+- Duration: {duration_days} days
+- Travelers: {travelers}
+- Stated Budget: {raw_budget}
+
+Determine which category it fits: "low budget", "mid budget", or "luxury".
+Respond with ONLY one of these terms. Do not add extra punctuation or text."""
+
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=15,
+        )
+        classified = completion.choices[0].message.content.strip().lower()
+        if "low" in classified:
+            return "low budget"
+        elif "luxury" in classified or "high" in classified:
+            return "luxury"
+        elif "medium" in classified or "mid" in classified:
+            return "mid budget"
+    except Exception as e:
+        log("WARN", f"Budget classification failed: {e}", C.YELLOW)
+        
+    if any(kw in clean for kw in ["low", "budget"]):
+        return "low budget"
+    if any(kw in clean for kw in ["luxury", "high"]):
+        return "luxury"
+    return "mid budget"
 
 # ---------------------------------------------
 # AGENT LOGIC & SYSTEM PROMPTS
 # ---------------------------------------------
 def get_system_prompt_gather() -> str:
-    return f"""You are VoyageAgent, an AI travel assistant.
+    now = datetime.now()
+    today_str = now.strftime("%A, %B %d, %Y")
+    tomorrow = (now + timedelta(days=1)).strftime("%B %d")
+    after_2 = (now + timedelta(days=2)).strftime("%B %d")
+    next_week = (now + timedelta(days=7)).strftime("%B %d")
+
+    return f"""You are VoyageAgent, a professional AI travel assistant.
+The current local date is: {today_str}.
+
 Your goal is to gather the following 7 parameters from the user to build their trip:
 1. origin
 2. destination
@@ -379,8 +632,12 @@ Your goal is to gather the following 7 parameters from the user to build their t
 6. travel_dates
 7. travelers
 
-Keep your questions helpful, short, and friendly.
-Once you have collected all 7 parameters, call the TripDetails tool to finalize parameters."""
+Rules:
+- Treat the user with formal courtesy. Do not use terms of endearment.
+- If the user asks general questions outside travel planning, refuse politely.
+- Resolve relative terms correctly based on {today_str}: "today" = {today_str} | "tomorrow" = {tomorrow} | "after 2 days" = {after_2} | "next week" = {next_week}.
+- Reject past dates.
+- Once you have collected all 7 parameters, call the TripDetails tool to finalize parameters."""
 
 class TripDetails(BaseModel):
     """Call this tool when you have successfully gathered all 7 pieces of information from the user."""
@@ -418,7 +675,44 @@ def run_agent(messages: list) -> tuple[str, dict | None]:
     if getattr(gather_response, "tool_calls", None):
         for tc in gather_response.tool_calls:
             if tc["name"] == "TripDetails":
-                return "READY_TO_PLAN", tc["args"]
+                gathered_info = tc["args"]
+                
+                # Dynamic budget classification
+                raw_budget = gathered_info.get("budget", "")
+                if raw_budget:
+                    try:
+                        classified_budget = _classify_budget_tier(
+                            origin=gathered_info.get("origin", ""),
+                            destination=gathered_info.get("destination", ""),
+                            duration_days=int(gathered_info.get("duration_days", 1)),
+                            travelers=int(gathered_info.get("travelers", 1)),
+                            raw_budget=raw_budget,
+                            api_key=api_key
+                        )
+                        gathered_info["budget"] = classified_budget
+                    except Exception as e:
+                        log("WARN", f"Budget classification failed: {e}", C.YELLOW)
+
+                # AI interpretation of interests
+                raw_interests = gathered_info.get("interests", "")
+                if raw_interests:
+                    try:
+                        client = Groq(api_key=api_key)
+                        interpret_prompt = f"""You are an elite travel planner. Given the user's raw stated interests: "{raw_interests}"
+Generate a brief, highly inspiring 1-sentence professional AI interpretation of their interests. Under 25 words."""
+                        interpret_comp = client.chat.completions.create(
+                            model="llama-3.1-8b-instant",
+                            messages=[{"role": "user", "content": interpret_prompt}],
+                            temperature=0.3,
+                            max_tokens=50
+                        )
+                        interpreted = interpret_comp.choices[0].message.content.strip().replace('"', '')
+                        if len(interpreted) > 5:
+                            gathered_info["interests"] = interpreted
+                    except Exception as e:
+                        log("WARN", f"Interests AI interpretation failed: {e}", C.YELLOW)
+
+                return "READY_TO_PLAN", gathered_info
 
     return gather_text, None
 
@@ -518,7 +812,7 @@ def run_phase_2(gathered_info: dict) -> dict:
 def chat():
     data = request.get_json() or {}
     user_message = data.get("message", "").strip()
-    history = data.get("history", []) # Client acts as conversation memory
+    history = data.get("history", [])
     confirmed_params = data.get("confirmed_params", None)
 
     if confirmed_params:
@@ -532,7 +826,6 @@ def chat():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    # Build messages array for info gathering phase
     messages = []
     for msg in history:
         messages.append({"role": msg.get("role"), "content": msg.get("content")})
@@ -555,7 +848,7 @@ def chat():
 
 @app.route('/')
 def index():
-    return jsonify({"status": "running", "service": "VoyageAgent AI Core Backend"})
+    return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

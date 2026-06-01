@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoyageAgent: Chat UI</title>
+    <!-- Google Fonts: Inter and Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Style Sheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-compass-drafting logo-icon"></i>
+                <div>
+                    <h1>VoyageAgent</h1>
+                    <span class="sub-status">Agentic AI Travel Planner</span>
+                </div>
+            </div>
+            <button id="btn-new-chat" class="new-chat-btn" title="New Chat">
+                <i class="fa-solid fa-pen-to-square"></i> New Chat
+            </button>
+        </header>
+
+        <!-- Message feed -->
+        <div class="chat-feed" id="chatFeed">
+            <div class="chat-bubble bot">
+                <p>Welcome to VoyageAgent! Tell me about your dream getaway (destination, budget level, travel dates, travelers, and interests) to plan your perfect trip.</p>
+            </div>
+        </div>
+
+        <!-- Chat inputs footer -->
+        <footer class="chat-footer">
+            <form id="chatForm" class="input-container">
+                <input type="text" id="userInput" placeholder="Ask VoyageAgent to plan a trip..." required autocomplete="off">
+                <button type="submit" class="send-btn" id="sendBtn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <!-- Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
