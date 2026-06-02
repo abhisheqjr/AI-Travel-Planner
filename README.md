@@ -19,9 +19,15 @@ Output Truncation Prevention: Applies automatic prompt token limits for long tri
 
 Conversation memory: Supported via client-provided conversation history.
 
+User Authentication & Session Database: Integrates Supabase as the data storage engine to handle authenticated user sessions and profiles.
+
+Email Verification Service: Configured with standard SMTP servers to handle secure registration and password recovery verification codes.
+
 ## Technical Stack
 * Language: Python 3
 * Web Framework: Flask
+* Database: Supabase DB (using python supabase client library)
+* Email Client: SMTP Client (via `smtplib`)
 * Agent Frameworks: LangGraph, LangChain Core
 * LLM Provider: Groq Cloud (llama-3.3-70b-versatile, llama-3.1-8b-instant)
 * Search APIs: SerpAPI (Google Flights, Google Hotels, Google Maps)
@@ -42,6 +48,17 @@ Conversation memory: Supported via client-provided conversation history.
    ```env
    GROQ_API_KEY=your_groq_api_key
    SERPAPI_API_KEY=your_serpapi_api_key
+   
+   # Database (Supabase)
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_KEY=your_supabase_key
+
+   # Email OTP (SMTP Server configuration)
+   SMTP_SERVER=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your_gmail_username
+   SMTP_PASSWORD=your_gmail_app_password
+   SMTP_SENDER=your_sender_email
    ```
 
 4. Run the Flask application:

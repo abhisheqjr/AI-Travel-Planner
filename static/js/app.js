@@ -282,4 +282,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         appendBubble("bot", summaryHtml);
     }
+
+    // Optional: Fetch logged-in user details to display in console (Phase 1)
+    async function checkAccountSession() {
+        try {
+            const res = await fetch("/api/account/details");
+            if (res.ok) {
+                const user = await res.json();
+                console.log("Welcome back to VoyageAgent, " + user.username + "!");
+            }
+        } catch (e) {
+            console.warn("User session is local or inactive.");
+        }
+    }
+    checkAccountSession();
 });

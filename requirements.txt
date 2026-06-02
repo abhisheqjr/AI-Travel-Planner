@@ -6,3 +6,4 @@ langchain-groq
 langchain-core
 langgraph
 pydantic
+supabase

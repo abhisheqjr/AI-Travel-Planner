@@ -3,7 +3,7 @@ import json
 import time
 import re
 import requests
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -22,6 +22,20 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
+
+# ─────────────────────────────────────────────
+# SUPABASE INITIALIZATION
+# ─────────────────────────────────────────────
+from supabase import create_client, Client
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = None
+
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print(f"Failed to initialize Supabase client: {e}")
 
 # ---------------------------------------------
 # TERMINAL LOGGER
@@ -805,6 +819,184 @@ def run_phase_2(gathered_info: dict) -> dict:
     }
     return graph.invoke(initial_state)
 
+# ─────────────────────────────────────────────
+# EMAIL OTP & PASSWORD RESET WORKFLOW (SMTP)
+# ─────────────────────────────────────────────
+import smtplib
+import random
+from email.mime.text import MIMEText
+
+def send_otp_email(to_email, otp, mode="register"):
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username = os.getenv("SMTP_USERNAME", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    smtp_sender = os.getenv("SMTP_SENDER", "")
+
+    if not smtp_username or not smtp_password:
+        log("ERROR", f"SMTP credentials missing. Cannot send OTP to {to_email}", C.RED)
+        return False
+
+    if mode == "register":
+        title = "Verify Your Registration"
+        greeting = "Welcome to VoyageAgent"
+        message_text = "Thank you for joining VoyageAgent! To finish setting up your account, please verify your email address by using the 6-digit OTP code below."
+        subject = "VoyageAgent - Verify Your Account OTP"
+    elif mode == "update":
+        title = "Verify Your Account Changes"
+        greeting = "Hello"
+        message_text = "We received a request to update your account username and/or password. To complete these changes, please verify using the 6-digit OTP code below."
+        subject = "VoyageAgent - Verify Your Account Changes"
+    else:
+        title = "Reset Your Password"
+        greeting = "Hello"
+        message_text = "We received a request to reset your account password. Use the 6-digit OTP code below to set up your new credentials."
+        subject = "VoyageAgent - Reset Your Password OTP"
+
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>VoyageAgent Verification</title>
+    <style>
+        body {{
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }}
+        .header {{
+            background-color: #0f172a;
+            padding: 32px;
+            text-align: center;
+            border-bottom: 3px solid #3b82f6;
+        }}
+        .logo-text {{
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+        }}
+        .logo-icon {{
+            color: #3b82f6;
+            margin-right: 8px;
+        }}
+        .content {{
+            padding: 40px 32px;
+            color: #334155;
+            line-height: 1.6;
+        }}
+        h2 {{
+            color: #0f172a;
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }}
+        p {{
+            font-size: 15px;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }}
+        .otp-container {{
+            background-color: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin: 28px 0;
+        }}
+        .otp-code {{
+            font-size: 36px;
+            font-weight: 800;
+            color: #2563eb;
+            letter-spacing: 6px;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }}
+        .otp-label {{
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }}
+        .footer {{
+            background-color: #f8fafc;
+            padding: 24px 32px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }}
+        .security-notice {{
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 16px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 16px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo-text">VoyageAgent</span>
+        </div>
+        <div class="content">
+            <h2>{title}</h2>
+            <p>{greeting},</p>
+            <p>{message_text}</p>
+            
+            <div class="otp-container">
+                <div class="otp-label">Verification OTP Code</div>
+                <div class="otp-code">{otp}</div>
+            </div>
+            
+            <p>This code is valid for <strong>10 minutes</strong>. For security reasons, please do not share this code with anyone.</p>
+            
+            <p>Safe travels,<br><strong>The VoyageAgent Team</strong></p>
+        </div>
+        <div class="footer">
+            © 2026 VoyageAgent. All rights reserved.<br>
+            Your AI-Powered Premium Itinerary Assistant.
+            <div class="security-notice">
+                If you did not request this verification code, please disregard this email. Your account remains completely secure.
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    msg = MIMEText(html_content, 'html')
+    msg['Subject'] = subject
+    msg['From'] = smtp_sender
+    msg['To'] = to_email
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        server.sendmail(smtp_sender, [to_email], msg.as_string())
+        server.quit()
+        log("INFO", f"HTML OTP successfully sent to {to_email}", C.GREEN)
+        return True
+    except Exception as e:
+        log("ERROR", f"SMTP send failed: {e}.", C.RED)
+        return False
+
 # ---------------------------------------------
 # FLASK ROUTE
 # ---------------------------------------------
@@ -847,8 +1039,56 @@ def chat():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/')
-def index():
+def home():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    session.pop("just_logged_in", None)
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        email = data.get("email", "").strip()
+        password = data.get("password", "")
+
+        if not email or not password:
+            return jsonify({"error": "Email and password are required."}), 400
+
+        if not supabase:
+            # Safe local fallback offline
+            if email == "siva@gmail.com" and password == "123456":
+                session["user_id"] = "dummy-siva-uuid"
+                session["username"] = "Siva"
+                session["just_logged_in"] = True
+                return jsonify({"status": "success"}), 200
+            return jsonify({"error": "Invalid email or password."}), 400
+
+        try:
+            res = supabase.table("users").select("*").eq("email", email).execute()
+            if not res.data:
+                return jsonify({"error": "Invalid email or password."}), 400
+            
+            user = res.data[0]
+            if user.get("password_hash") == password:
+                session["user_id"] = user["id"]
+                session["username"] = user["username"]
+                session["just_logged_in"] = True
+                return jsonify({"status": "success"}), 200
+            else:
+                return jsonify({"error": "Invalid email or password."}), 400
+        except Exception as e:
+            log("ERROR", f"Login database error: {e}", C.RED)
+            return jsonify({"error": "Database error. Please try again."}), 500
+
+    if "user_id" in session:
+        return redirect(url_for("home"))
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

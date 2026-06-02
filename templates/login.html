@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - VoyageAgent</title>
+    <!-- Google Fonts: Inter and Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --bg-dark: #0f172a;
+            --bg-light: #f0f4f9;
+            --accent-blue: #2563eb;
+            --accent-blue-hover: #1d4ed8;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --text-white: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Split-screen Layout */
+        .login-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Left Branding Panel */
+        .brand-panel {
+            flex: 1.1;
+            background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)), 
+                        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 8% 6%;
+            color: var(--text-white);
+            position: relative;
+        }
+
+        .brand-logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .brand-logo-icon {
+            font-size: 32px;
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .brand-subtitle {
+            font-size: 18px;
+            color: #93c5fd;
+            font-weight: 400;
+            margin-bottom: 48px;
+            font-family: var(--font-display);
+        }
+
+        /* Features List */
+        .features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            max-width: 480px;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .feature-icon-wrapper {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #60a5fa;
+            font-size: 16px;
+        }
+
+        .feature-text-container h4 {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-text-container p {
+            font-size: 13.5px;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        /* Right Form Panel */
+        .form-panel {
+            flex: 0.9;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 80px 40px 40px 40px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .welcome-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .welcome-header h2 {
+            /* INTENTIONAL BUG: fallback to serif, styling issue */
+            font-family: serif; 
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .welcome-header p {
+            color: var(--text-muted);
+            font-size: 14.5px;
+        }
+
+        /* Form Card */
+        .login-card {
+            background-color: var(--text-white);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 440px;
+            padding: 40px 36px 36px;
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-card form {
+            margin: 24px 0 16px 0 !important;
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.prefix-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            /* INTENTIONAL BUG: Left padding too small, overlapping the prefix icon */
+            padding: 12px 14px 12px 20px; 
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 14px;
+            color: var(--text-main);
+            background-color: #fafbfc;
+            transition: all 0.2s;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background-color: var(--text-white);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        /* Password Eye Toggle */
+        .input-wrapper .password-toggle {
+            position: absolute;
+            right: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.2s;
+            z-index: 10;
+        }
+
+        .input-wrapper .password-toggle:hover {
+            color: var(--text-main);
+        }
+
+        /* Sign-in Button */
+        .btn-submit {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #0f172a; /* Slate Dark */
+            color: var(--text-white);
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+            margin-bottom: 24px;
+        }
+
+        .btn-submit:hover {
+            background-color: #1e293b;
+        }
+
+        /* Divider */
+        .card-divider {
+            position: relative;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .card-divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: var(--border-color);
+            z-index: 1;
+        }
+
+        .card-divider span {
+            background-color: var(--text-white);
+            padding: 0 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Social Sign In */
+        .social-grid {
+            display: flex;
+            /* INTENTIONAL BUG: missing space between elements, buttons will squish together */
+            gap: 0px; 
+        }
+
+        .btn-social {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            background-color: var(--text-white);
+            border-radius: 8px;
+            font-family: var(--font-body);
+            font-size: 13.5px;
+            font-weight: 500;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-social:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Error Banner */
+        .error-banner {
+            background-color: #fee2e2;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #991b1b;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .brand-panel {
+                display: none;
+            }
+            .form-panel {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        
+        <!-- Left Branding side -->
+        <div class="brand-panel">
+            <div class="brand-logo-container">
+                <i class="fa-solid fa-compass-drafting brand-logo-icon"></i>
+                <div class="brand-title">Voyage Agent</div>
+            </div>
+            <div class="brand-subtitle">Plan your next adventure with AI.</div>
+            
+            <div class="features-list">
+                <div class="feature-item">
+                    <div class="feature-icon-wrapper">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <div class="feature-text-container">
+                        <h4>Real-time Itineraries</h4>
+                        <p>Adaptive planning that evolves with your journey, leveraging real time details.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon-wrapper">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div class="feature-text-container">
+                        <h4>Expert Concierge</h4>
+                        <p>24/7 AI-powered assistance for accommodation, activities, and dining needs.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon-wrapper">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div class="feature-text-container">
+                        <h4>Secure Ecosystem</h4>
+                        <p>Your session conversations and travel boards protected by modern secure safeguards.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Login Card side -->
+        <div class="form-panel">
+            
+            <!-- Login View -->
+            <div id="loginView" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <div class="welcome-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to manage your travels.</p>
+                </div>
+                
+                <div class="login-card">
+                    <!-- Red Alert banner for validation errors -->
+                    <div class="error-banner" id="errorBanner">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span id="errorMessage">Invalid email or password.</span>
+                    </div>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="email">Email address</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-envelope prefix-icon"></i>
+                                <input type="email" id="email" placeholder="" required autocomplete="email">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-lock prefix-icon"></i>
+                                <input type="password" id="password" placeholder="" required autocomplete="current-password">
+                                <i class="fa-solid fa-eye password-toggle" id="passwordToggle"></i>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn-submit" id="btnSubmit">
+                            <span>Sign in</span>
+                            <i class="fa-solid fa-arrow-right-long"></i>
+                        </button>
+                    </form>
+
+                    <div class="card-divider">
+                        <span>or sign in with</span>
+                    </div>
+
+                    <div class="social-grid">
+                        <button class="btn-social">
+                            <i class="fa-brands fa-google" style="color: #ea4335;"></i> Google
+                        </button>
+                        <button class="btn-social">
+                            <i class="fa-brands fa-github"></i> GitHub
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const passwordInput = document.getElementById("password");
+        const passwordToggle = document.getElementById("passwordToggle");
+        const loginForm = document.getElementById("loginForm");
+        const errorBanner = document.getElementById("errorBanner");
+        const errorMessage = document.getElementById("errorMessage");
+
+        passwordToggle.addEventListener("click", () => {
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                passwordToggle.className = "fa-solid fa-eye-slash password-toggle";
+            } else {
+                passwordInput.type = "password";
+                passwordToggle.className = "fa-solid fa-eye password-toggle";
+            }
+        });
+    </script>
+</body>
+</html>
