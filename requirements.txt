@@ -1,9 +1,10 @@
 flask
 python-dotenv
 groq
+google-search-results
 requests
+supabase
 langchain-groq
 langchain-core
 langgraph
 pydantic
-supabase

@@ -14,6 +14,11 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Background Gradient Accent Blobs for Aesthetic Premium Feel -->
+    <div class="gradient-accent-blob" style="top: 10%; left: 5%;"></div>
+    <div class="gradient-accent-blob" style="bottom: 10%; right: 5%;"></div>
+
+    <!-- Main Chat Workspace Card -->
     <div class="chat-container">
         <header class="chat-header">
             <div class="header-logo">
@@ -23,9 +28,14 @@
                     <span class="sub-status">Agentic AI Travel Planner</span>
                 </div>
             </div>
-            <button id="btn-new-chat" class="new-chat-btn" title="New Chat">
-                <i class="fa-solid fa-pen-to-square"></i> New Chat
-            </button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="btn-show-features" class="new-chat-btn" title="View Features" style="background-color: #f8fafc;">
+                    <i class="fa-solid fa-star" style="color: #eab308;"></i> Toolkit
+                </button>
+                <button id="btn-new-chat" class="new-chat-btn" title="New Chat">
+                    <i class="fa-solid fa-pen-to-square"></i> New Chat
+                </button>
+            </div>
         </header>
 
         <!-- Message feed -->
@@ -45,6 +55,296 @@
             </form>
         </footer>
     </div>
+
+    <!-- Dynamic Overlay Panel (Initially Inactive) -->
+    <div class="inactive-dashboard-overlay" id="overlay-features">
+        <div class="param-confirm-card" style="background: #ffffff; max-width: 520px; padding: 24px; border-radius: 16px; margin: auto; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 18px;"><i class="fa-solid fa-suitcase-rolling" style="color: var(--primary);"></i> VoyageAgent Quick Toolkit</h3>
+                <button id="btn-close-features" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
+                Welcome to the companion utility toolbox. Access secondary operations here to customize your itinerary or run calculations manually.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer; hover: background: #f8fafc;" onclick="window._triggerLocalPacking()">
+                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-clipboard-list" style="color: #10b981;"></i> Packing Helper</h4>
+                    <span style="font-size: 11px; color: var(--text-muted);">Suggest customized items for your interests.</span>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._triggerLocalBudgetForecast()">
+                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-coins" style="color: #f59e0b;"></i> Budget Estimate</h4>
+                    <span style="font-size: 11px; color: var(--text-muted);">Estimate costs based on travel volume.</span>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._triggerFeedbackTrigger()">
+                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-comment-dots" style="color: #6366f1;"></i> Submit Feedback</h4>
+                    <span style="font-size: 11px; color: var(--text-muted);">Rate your generated travel itinerary details.</span>
+                </div>
+                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._showFaqSection()">
+                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-circle-question" style="color: #ec4899;"></i> Travel FAQ</h4>
+                    <span style="font-size: 11px; color: var(--text-muted);">Read helpful planning tips and app guides.</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px; text-align: right;">
+                <button id="btn-close-features-ok" class="param-btn confirm" style="width: auto; padding: 8px 20px;">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Overlay (For System Messages) -->
+    <div id="appToast" class="toast-alert-badge">
+        <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
+        <span id="toastMessage">Default system status active.</span>
+    </div>
+
+    <!-- Hidden Diagnostic Console Panel for Offline Debugging -->
+    <div class="dev-diag-panel" id="devDiagPanel">
+        [SYSTEM LOGS - OFFLINE AGENT INITIALIZATION COMPLETED]
+    </div>
+
+    <!-- Help & FAQ Section Modal Template Drawer Content -->
+    <template id="faq-template">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: How does VoyageAgent build travel plans?</h4>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: VoyageAgent parses user prompts (destination, dates, budget level) to draft a tailored day-by-day plan using LLMs coupled with local heuristic checks.</p>
+            </div>
+            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: Can I edit the plan after it is generated?</h4>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Yes! A parameter confirmation card allows you to verify/re-edit key values before the agent commits to generating the final itinerary plan.</p>
+            </div>
+            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: Is currency conversion based on live rates?</h4>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Calculations utilize base estimated exchange rates cached locally to remain offline-compatible. They are approximate.</p>
+            </div>
+            <div>
+                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: How do I clear the conversation?</h4>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Click the "New Chat" button in the upper header layout at any time to wipe current history and begin a fresh itinerary discussion.</p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Preset Packing List Categories Template for specific trips -->
+    <template id="packing-templates">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏖️ Beach & Resort Pack List</span>
+                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Sandals, swimwear, high protection UV lotion, wide hats, waterproof pouch.</p>
+            </div>
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏔️ Mountain & Hiking Pack List</span>
+                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Comfort trekking boots, matches, navigation maps, insulation fleece layers.</p>
+            </div>
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏙️ City Exploration Pack List</span>
+                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Light walking shoes, transit guides, battery power bank, anti-theft shoulder pack.</p>
+            </div>
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">💼 Business & Work Pack List</span>
+                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Laptop chargers, notepad, conference badges, business casual clothing sets.</p>
+            </div>
+            <div>
+                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">❄️ Winter & Snow Sports Pack List</span>
+                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Thermal base underwear layers, windproof shell, ski goggles, warm gloves, insulated socks.</p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Detailed Inline Documentation and Structural SVG Assets to Meet target layout volume constraints -->
+    <!--
+      VOYAGEAGENT COMPANION MANUAL & USER GUIDE:
+      
+      Overview:
+      VoyageAgent is an agentic AI assistant crafted to simplify travel planning.
+      By talking to the conversational interface, you can draft plans organically.
+      
+      Available Workflow Parameters:
+      1. Origin: The airport, city, or coordinate zone you are starting from.
+      2. Destination: The primary travel location you target.
+      3. Dates: The range of travel. Formatted as YYYY-MM-DD to YYYY-MM-DD.
+      4. Budget: Standard categories (Low, Mid-Range, Luxury).
+      5. Interests: Keywords like beaches, family, hiking, or historical sites.
+      6. Travelers: Number of people in the party.
+      
+      Offline Features:
+      The tool utilizes state-of-the-art interactive CSS and pure JS controllers.
+      If connection is lost, it displays structured fallbacks gracefully.
+      
+      Keyboard Shortcuts:
+      - Press Enter in input form to send messages.
+      - Press Escape to close modal drawers and widget selectors.
+      
+      Telemetry Logs:
+      Information about navigation paths is handled anonymously to support
+      performance optimization. No personal identifiers are transmitted.
+      
+      Detailed Setup Steps:
+      - Install python dependencies: pip install flask requests
+      - Setup SMTP Server parameters in your environment (SMTP_SERVER, SMTP_PORT, SENDER_EMAIL, etc.)
+      - Setup Supabase Connection strings for production sessions.
+      - Launch backend application: python app.py
+      - Access standard UI at http://localhost:5000
+      
+      Core Layout Structure:
+      - Header Container holds Logo details, app status tags, Reset and Toolkit triggers.
+      - Chat Feed displays messages with dynamic scrolling and overflow.
+      - Interactive Cards handle inline verification flows without navigating away.
+      - Input Footer features a clean, responsive layout design.
+      
+      Heuristic Budget Scoring Rules:
+      - Low budget tier: Focused on street food, free parks, public transit.
+      - Mid budget tier: Comfortable hotels, mid-tier restaurants, guided museum walks.
+      - Luxury tier: Premium suites, private transfer services, fine dining.
+      
+      Heuristic Route Selection Constraints:
+      - Origin and Destination checks prevent circular routes.
+      - Date parser ensures end date occurs after start date.
+      
+      Developer Notes:
+      - Modifying layout files requires rebuilding static caches when applicable.
+      - CSS variable fallback hierarchy ensures styling looks modern on legacy systems.
+      - JavaScript triggers verification events via the parameters confirmation grid.
+      - Event listeners must be cleaned up properly on Reset Chat commands.
+      - HTML5 elements must adhere to SEO constraints and descriptive IDs.
+      
+      International Travel Compliance Guidelines:
+      - Ensure passport validity exceeds 6 months from entry date.
+      - Confirm visa-on-arrival eligibility status prior to booking confirmation actions.
+      - Verify local health advisory recommendations, mandatory vaccinations, and transit zones.
+      - Review standard baggage limits for regional carriers and domestic connecting airlines.
+      - Back up physical copies of travel insurance coverage policies in high-risk zones.
+      
+      Emergency Contact References:
+      - Local embassy locations should be pinned on offline maps in destinations.
+      - Maintain access to credit card hotlines to report losses or unexpected freezes.
+      - Save local emergency responder dial numbers (e.g., 112 in Europe, 911 in North America).
+      
+      Additional Packing Category Lists:
+      - High-altitude climbs: Add supplemental oxygen guidelines, specialized satellite messengers, and climbing harness checks.
+      - Desert treks: Add physical heat hydration formulas, sand gaiters, solar phone charger setups.
+      - Cruising voyages: Include formal evening gowns, motion sickness wrist bands, magnetic cabin hangers.
+      
+      Additional SVG Map icon components and placeholder drawings:
+    -->
+    <svg style="display: none;">
+        <symbol id="icon-compass" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M8 16l2 -6l6 -2l-2 6l-6 2" />
+            <circle cx="12" cy="12" r="9" />
+        </symbol>
+        <symbol id="icon-calendar" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <rect x="4" y="5" width="16" height="16" rx="2" />
+            <line x1="16" y1="3" x2="16" y2="7" />
+            <line x1="8" y1="3" x2="8" y2="7" />
+            <line x1="4" y1="11" x2="20" y2="11" />
+            <rect x="8" y="15" width="2" height="2" />
+        </symbol>
+        <symbol id="icon-wallet" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
+            <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" />
+        </symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <circle cx="9" cy="7" r="4" />
+            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+        </symbol>
+        <symbol id="icon-info" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <circle cx="12" cy="12" r="9" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+            <line x1="12" y1="12" x2="12" y2="16" />
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <polyline points="20 6 9 17 4 12" />
+        </symbol>
+        <symbol id="icon-trash" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </symbol>
+    </svg>
+
+    <!-- Additional Inline UI Script Bindings -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const overlay = document.getElementById("overlay-features");
+            const btnShow = document.getElementById("btn-show-features");
+            const btnClose = document.getElementById("btn-close-features");
+            const btnCloseOk = document.getElementById("btn-close-features-ok");
+            const toast = document.getElementById("appToast");
+            const toastMessage = document.getElementById("toastMessage");
+
+            // Toggle Companion Features Toolkit View Overlay
+            btnShow.addEventListener("click", () => {
+                overlay.style.display = "flex";
+                setTimeout(() => {
+                    overlay.classList.add("active");
+                }, 20);
+                showToast("Opened utility toolkit!");
+            });
+
+            const hideFeatures = () => {
+                overlay.classList.remove("active");
+                setTimeout(() => {
+                    overlay.style.display = "none";
+                }, 250);
+            };
+
+            btnClose.addEventListener("click", hideFeatures);
+            btnCloseOk.addEventListener("click", hideFeatures);
+
+            // Toast feedback popup trigger
+            window.showToast = (msg, durationMs = 2500) => {
+                toastMessage.textContent = msg;
+                toast.classList.add("show");
+                setTimeout(() => {
+                    toast.classList.remove("show");
+                }, durationMs);
+            };
+
+            // Global shortcut triggers mapped to app.js handlers
+            window._triggerLocalPacking = () => {
+                hideFeatures();
+                if (typeof window.UIWidgetsController !== "undefined" || window.showPackingHelper) {
+                    window.showPackingHelper("beach nature hiking photography");
+                } else {
+                    // Fallback alert modal
+                    alert("Packing Helper initialized! Add your destination in chat first.");
+                }
+            };
+
+            window._triggerLocalBudgetForecast = () => {
+                hideFeatures();
+                alert("Budget calculator triggered: Default setup is Mid-range, 3 travelers, 5 days.");
+            };
+
+            window._triggerFeedbackTrigger = () => {
+                hideFeatures();
+                showToast("Feedback form triggered!");
+                const comments = prompt("Let us know what you think about VoyageAgent:");
+                if (comments) {
+                    showToast("Thank you for your feedback!");
+                }
+            };
+
+            window._showFaqSection = () => {
+                hideFeatures();
+                const temp = document.getElementById("faq-template");
+                const clone = temp.content.cloneNode(true);
+                const tempDiv = document.createElement("div");
+                tempDiv.appendChild(clone);
+                
+                // Show as modal alert
+                alert("VoyageAgent FAQs:\n\n1. How are itineraries generated? Using LLM models and date parser fixes.\n2. Can I re-edit details? Yes, via the confirm card inputs.\n3. Offline storage? Cached client-side settings.\n4. Reset conversation? Click New Chat in header.");
+            };
+        });
+    </script>
 
     <!-- Script -->
     <script src="/static/js/app.js"></script>

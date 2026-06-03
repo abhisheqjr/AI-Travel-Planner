@@ -23,6 +23,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
+print("========================================================================", flush=True)
+print("  [VoyageAgent] Starting Flask Server in Sync Target directory.", flush=True)
+print("  Supabase Client connection state: checking keys...", flush=True)
+print("========================================================================", flush=True)
+
 # ─────────────────────────────────────────────
 # SUPABASE INITIALIZATION
 # ─────────────────────────────────────────────
@@ -583,12 +588,12 @@ Return ONLY the JSON list inside a ```json ``` block."""
 def _classify_budget_tier(origin: str, destination: str, duration_days: int, travelers: int, raw_budget: str, api_key: str) -> str:
     clean = str(raw_budget).strip().lower()
     if not any(char.isdigit() for char in clean):
-        if any(kw in clean for kw in ["low", "budget"]):
-            return "low budget"
         if any(kw in clean for kw in ["luxury", "high", "premium"]):
             return "luxury"
         if any(kw in clean for kw in ["mid", "medium", "standard", "moderate"]):
             return "mid budget"
+        if any(kw in clean for kw in ["low", "budget"]):
+            return "low budget"
             
     try:
         client = Groq(api_key=api_key)
@@ -618,10 +623,12 @@ Respond with ONLY one of these terms. Do not add extra punctuation or text."""
     except Exception as e:
         log("WARN", f"Budget classification failed: {e}", C.YELLOW)
         
-    if any(kw in clean for kw in ["low", "budget"]):
-        return "low budget"
     if any(kw in clean for kw in ["luxury", "high"]):
         return "luxury"
+    if any(kw in clean for kw in ["mid", "medium", "standard", "moderate"]):
+        return "mid budget"
+    if any(kw in clean for kw in ["low", "budget"]):
+        return "low budget"
     return "mid budget"
 
 # ---------------------------------------------
@@ -750,9 +757,23 @@ def node_feasibility(state: AgentState):
 def node_transport(state: AgentState):
     gi = state["gathered_info"]
     f = state["tool_results"].get("feasibility", {})
+    
+    travel_dates = gi.get("travel_dates", "")
+    travel_date = ""
+    return_date = ""
+    if travel_dates:
+        import re
+        date_matches = re.findall(r'\b\d{4}-\d{2}-\d{2}\b', travel_dates)
+        if len(date_matches) >= 1:
+            travel_date = date_matches[0]
+        if len(date_matches) >= 2:
+            return_date = date_matches[1]
+
     res = tool_fetch_transport_options.invoke({
         "origin": gi.get("origin"),
         "destination": gi.get("destination"),
+        "travel_date": travel_date,
+        "return_date": return_date,
         "trains_available": f.get("trains_available", True),
         "buses_available": f.get("buses_available", True)
     })
@@ -1084,6 +1105,180 @@ def login():
     if "user_id" in session:
         return redirect(url_for("home"))
     return render_template('login.html')
+
+@app.route('/register/send-otp', methods=['POST'])
+def register_send_otp():
+    data = request.get_json() or {}
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if not username or not email or not password or not confirm_password:
+        return jsonify({"error": "All fields are required."}), 400
+
+    if password != confirm_password:
+        return jsonify({"error": "Passwords do not match."}), 400
+
+    # Verify if email already registered
+    if supabase:
+        try:
+            res = supabase.table("users").select("id").eq("email", email).execute()
+            if res.data:
+                return jsonify({"error": "Email address already registered."}), 400
+        except Exception as e:
+            log("ERROR", f"Database error checking email: {e}", C.RED)
+            return jsonify({"error": "Database error. Please try again."}), 500
+    else:
+        if email == "siva@gmail.com":
+            return jsonify({"error": "Email address already registered."}), 400
+
+    # Generate OTP
+    otp = str(random.randint(100000, 999999))
+    session["reg_otp"] = otp
+    session["reg_email"] = email
+    session["reg_username"] = username
+    session["reg_password"] = password
+
+    if not send_otp_email(email, otp, mode="register"):
+        return jsonify({"error": "Failed to send verification email. Please verify your SMTP settings."}), 500
+    return jsonify({"status": "success", "message": "Verification OTP sent to your email."}), 200
+
+@app.route('/register/verify-otp', methods=['POST'])
+def register_verify_otp():
+    data = request.get_json() or {}
+    otp = data.get("otp", "").strip()
+
+    if not otp:
+        return jsonify({"error": "OTP is required."}), 400
+
+    saved_otp = session.get("reg_otp")
+    if not saved_otp or saved_otp != otp:
+        return jsonify({"error": "Invalid or expired OTP."}), 400
+
+    username = session.get("reg_username")
+    email = session.get("reg_email")
+    password = session.get("reg_password")
+
+    if not username or not email or not password:
+        return jsonify({"error": "Session expired. Please try registering again."}), 400
+
+    if not supabase:
+        # Offline mode registration
+        session.clear()
+        session["user_id"] = "dummy-siva-uuid"
+        session["username"] = username
+        session["just_logged_in"] = True
+        return jsonify({"status": "success", "message": "Account created successfully."}), 201
+
+    try:
+        new_user = {
+            "username": username,
+            "email": email,
+            "password_hash": password
+        }
+        insert_res = supabase.table("users").insert(new_user).execute()
+        if not insert_res.data:
+            return jsonify({"error": "Failed to create account. Please try again."}), 500
+
+        # Success: Clear register sessions, log user in
+        session.clear()
+        user = insert_res.data[0]
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+        session["just_logged_in"] = True
+
+        return jsonify({"status": "success", "message": "Account created successfully."}), 201
+    except Exception as e:
+        log("ERROR", f"Failed to save user: {e}", C.RED)
+        return jsonify({"error": "Database error. Please try again."}), 500
+
+@app.route('/forgot-password/send-otp', methods=['POST'])
+def forgot_password_send_otp():
+    data = request.get_json() or {}
+    email = data.get("email", "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email address is required."}), 400
+
+    # Verify if email exists in database
+    user_found = False
+    if supabase:
+        try:
+            res = supabase.table("users").select("id").eq("email", email).execute()
+            if res.data:
+                user_found = True
+        except Exception as e:
+            log("ERROR", f"Forgot password db check error: {e}", C.RED)
+            return jsonify({"error": "Database error."}), 500
+    else:
+        if email == "siva@gmail.com":
+            user_found = True
+
+    if not user_found:
+        return jsonify({"error": "Email address not found."}), 400
+
+    # Generate OTP
+    otp = str(random.randint(100000, 999999))
+    session["forgot_otp"] = otp
+    session["forgot_email"] = email
+    session["forgot_otp_verified"] = False
+
+    if not send_otp_email(email, otp, mode="forgot"):
+        return jsonify({"error": "Failed to send verification email. Please verify your SMTP settings."}), 500
+    return jsonify({"status": "success", "message": "Verification OTP sent to your email."}), 200
+
+@app.route('/forgot-password/verify-otp', methods=['POST'])
+def forgot_password_verify_otp():
+    data = request.get_json() or {}
+    otp = data.get("otp", "").strip()
+
+    if not otp:
+        return jsonify({"error": "OTP is required."}), 400
+
+    saved_otp = session.get("forgot_otp")
+    if not saved_otp or saved_otp != otp:
+        return jsonify({"error": "Invalid or expired OTP."}), 400
+
+    session["forgot_otp_verified"] = True
+    return jsonify({"status": "success", "message": "OTP verified successfully."}), 200
+
+@app.route('/forgot-password/reset', methods=['POST'])
+def forgot_password_reset():
+    data = request.get_json() or {}
+    password = data.get("password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if not password or not confirm_password:
+        return jsonify({"error": "Password and Confirm Password are required."}), 400
+
+    if password != confirm_password:
+        return jsonify({"error": "Passwords do not match."}), 400
+
+    if not session.get("forgot_otp_verified"):
+        return jsonify({"error": "Unauthorized. Please verify OTP first."}), 403
+
+    email = session.get("forgot_email")
+    if not email:
+        return jsonify({"error": "Session expired. Please start forgot password flow again."}), 400
+
+    if not supabase:
+        # Offline mode simulated password reset
+        session.clear()
+        return jsonify({"status": "success", "message": "Password reset successfully. Please log in with your new password."}), 200
+
+    try:
+        # Update user password in the db
+        update_res = supabase.table("users").update({"password_hash": password}).eq("email", email).execute()
+        if not update_res.data:
+            return jsonify({"error": "Failed to update password. Please try again."}), 500
+
+        # Success: Clear sessions
+        session.clear()
+        return jsonify({"status": "success", "message": "Password reset successfully. Please log in with your new password."}), 200
+    except Exception as e:
+        log("ERROR", f"Failed to reset password: {e}", C.RED)
+        return jsonify({"error": "Database error. Please try again."}), 500
 
 @app.route('/logout')
 def logout():
