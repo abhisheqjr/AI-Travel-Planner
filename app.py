@@ -123,16 +123,92 @@ def serpapi_search(params: dict) -> dict:
 
 _IATA_CACHE = {}
 
+# Pre-defined mapping for extremely common cities to avoid network calls and timeouts
+COMMON_CITY_IATA = {
+    "dubai": "DXB",
+    "new york": "JFK",
+    "london": "LHR",
+    "paris": "CDG",
+    "tokyo": "HND",
+    "singapore": "SIN",
+    "sydney": "SYD",
+    "rome": "FCO",
+    "delhi": "DEL",
+    "mumbai": "BOM",
+    "bengaluru": "BLR",
+    "bangalore": "BLR",
+    "chennai": "MAA",
+    "kolkata": "CCU",
+    "hyderabad": "HYD",
+    "san francisco": "SFO",
+    "los angeles": "LAX",
+    "chicago": "ORD",
+    "miami": "MIA",
+    "boston": "BOS",
+    "seattle": "SEA",
+    "toronto": "YYZ",
+    "vancouver": "YVR",
+    "barcelona": "BCN",
+    "madrid": "MAD",
+    "amsterdam": "AMS",
+    "berlin": "BER",
+    "frankfurt": "FRA",
+    "munich": "MUC",
+    "zurich": "ZRH",
+    "bangkok": "BKK",
+    "hong kong": "HKG",
+    "seoul": "ICN",
+    "dublin": "DUB",
+    "copenhagen": "CPH",
+    "oslo": "OSL",
+    "stockholm": "ARN",
+    "vienna": "VIE",
+    "brussels": "BRU",
+    "geneva": "GVA",
+    "istanbul": "IST",
+    "cairo": "CAI",
+    "cape town": "CPT",
+    "johannesburg": "JNB",
+    "nairobi": "NBO",
+    "melbourne": "MEL",
+    "auckland": "AKL",
+}
+
+# Translate metropolitan codes to primary airport codes (which SerpAPI Google Flights needs)
+METRO_TO_AIRPORT = {
+    "NYC": "JFK",  # New York City -> John F. Kennedy
+    "LON": "LHR",  # London -> Heathrow
+    "TYO": "HND",  # Tokyo -> Haneda
+    "PAR": "CDG",  # Paris -> Charles de Gaulle
+    "SEL": "ICN",  # Seoul -> Incheon
+    "CHI": "ORD",  # Chicago -> O'Hare
+    "WAS": "IAD",  # Washington DC -> Dulles
+    "BJS": "PEK",  # Beijing -> Capital
+    "SHA": "PVG",  # Shanghai -> Pudong
+    "YTO": "YYZ",  # Toronto -> Pearson
+    "ROM": "FCO",  # Rome -> Fiumicino
+    "MIL": "MXP",  # Milan -> Malpensa
+    "OSA": "KIX",  # Osaka -> Kansai
+    "STO": "ARN",  # Stockholm -> Arlanda
+    "REK": "KEF",  # Reykjavik -> Keflavik
+    "MOW": "SVO",  # Moscow -> Sheremetyevo
+}
+
 def _resolve_iata(city: str) -> str | None:
     """Agentically resolve a city or country string to an IATA code using SerpAPI."""
     key = city.lower().strip()
     
     # Already a 3-letter IATA code
     if len(key) == 3 and key.isalpha():
-        return key.upper()
+        code = key.upper()
+        return METRO_TO_AIRPORT.get(code, code)
+        
+    if key in COMMON_CITY_IATA:
+        return COMMON_CITY_IATA[key]
         
     if key in _IATA_CACHE:
         return _IATA_CACHE[key]
+        
     if not SERPAPI_API_KEY:
         log("WARN", "SerpAPI key missing. Cannot resolve IATA.", C.YELLOW)
         return None
@@ -151,6 +227,7 @@ def _resolve_iata(city: str) -> str | None:
             ans = data.get("answer_box", {}).get("answer", "")
             if ans and len(ans) == 3 and ans.isalpha():
                 code = ans.upper()
+                code = METRO_TO_AIRPORT.get(code, code)
                 _IATA_CACHE[key] = code
                 return code
                 
@@ -159,6 +236,7 @@ def _resolve_iata(city: str) -> str | None:
             m = re.search(r'(?i)\bIATA[^\w]*([A-Z]{3})\b', snippets)
             if m:
                 code = m.group(1).upper()
+                code = METRO_TO_AIRPORT.get(code, code)
                 _IATA_CACHE[key] = code
                 return code
                 
