@@ -1,68 +1,73 @@
-# VoyageAgent: Agentic AI Travel Planner (Backend Core & Chat UI)
+VoyageAgent: Agentic AI Travel Planner
 
-This repository contains the backend core and lightweight Chat UI of VoyageAgent, an AI-powered travel planning service. It features a conversational agent that gathers trip details from the user, uses a graph-based agent architecture to call live tools, and generates custom itineraries.
+VoyageAgent is a high-fidelity, premium AI-powered travel planner that creates complete, personalized travel itineraries in real-time. By leveraging **LangGraph** agentic workflows, **Groq (Llama 3)**, **Supabase**, and live web searching via **SerpAPI**, VoyageAgent pulls real flight options, accommodation listings, local dining spots, and must-visit attractions to assemble an hour-by-hour visual dashboard and a downloadable PDF plan.
+
+---
 
 ## Features
 
-Interactive Chat UI: A clean, premium, minimal single-screen Chat UI where users can converse with VoyageAgent, edit their parameters interactively, and view daily summaries directly in the chat feed.
-Modern Design Aesthetics: Updated standard layouts with glassmorphic panels, skeleton-loader shimmers, responsive mobile layout grids.
-Parameter Gathering & Vibe Interpretation: AI chat agent collects travel details (origin, destination, budget, duration, interests, dates, and number of travelers) dynamically and interprets complex user interests into vibe descriptions.
-Smart Budget Classifier: Integrates an LLM-based budget tier classification using `llama-3.1-8b-instant` to dynamically map custom text or numerical budget inputs into standard tiers.
-Live Search Tools: Connects to SerpAPI to fetch live transportation options (flights, train timetables, road transit), Google Hotels (with stars, pricing, reviews, images), and local Google Maps attractions/dining search.
-Robust Itinerary Synthesis: Compiles a highly detailed day-by-day plan using the Llama-3.3 model on Groq.
-Output Truncation Prevention: Applies automatic prompt token limits for long trips (>5 days) and a brace-balancing parser fallback to guarantee a valid JSON response even if the LLM output is truncated.
-Conversation memory: Supported via client-provided conversation history.
-User Authentication & Session Database: Integrates Supabase as the data storage engine to handle authenticated user sessions and profiles.
-Email Verification Service: Configured with standard SMTP servers to handle secure registration and password recovery verification codes.
-OTP Authentication views and APIs: Integration of signup, password recovery, and password reset views inside the login page, using email OTP verification codes via SMTP and Supabase.
-Interactive Travel Parameters Card: Inline parameter editing for details like destination, travel dates, budget tier, and travelers directly in the chat feed.
-Date Parsing & Budget Tier Fixes: Backend fixes correcting date sorting filters and budget classification keyword alignments.
+- **Conversational Agentic AI:** Chat-based interface powered by LangGraph & Groq (`llama-3.3-70b-versatile`) that dynamically gathers your destination, budget, trip duration, and specific interests.
+- **Agent Memory & Dual-Layer Context:** Incorporates a sliding conversation window buffer (retaining the last 20 messages for immediate context) alongside a background summarization by llm for chats in history(which saves a dense 50-word summary in Supabase and injects it into subsequent session prompts for long-term memory without token overflow).
+- **Real-Time Search & Feasibility Engine:** Uses SerpAPI to query live APIs and Google Search for:
+- **Transport & Route Feasibility:** Resolves IATA codes and validates flights, rail, and road accessibility between cities.
+- **Hotel & Accommodation:** Fetches real prices, star ratings, amenities, reviews, and thumbnail images.
+- **Famous Food & Dining:** Identifies top-rated restaurants, cuisines, and signature dishes.
+- **Top Spots to Visit:** Highlights main local attractions, activities, and entry fees.
+- **Detailed Day-by-Day Timelines:** Synthesizes structured hour-by-hour schedules covering morning, lunch, afternoon, dinner, and evening plans.
+- **Downloadable PDF Itineraries:** Instantly generates a clean, styled, print-ready PDF document of your entire trip using ReportLab.
+- **Secure Account Portal:** Supabase integration featuring OTP email verification via SMTP, secure profiles, saved travel dashboards, and profile/password modification workflows.
 
-## Technical Stack
+---
 
-* **Language**: Python 3
-* **Web Framework**: Flask
-* **Database**: Supabase DB (using python supabase client library)
-* **Email Client**: SMTP Client (via `smtplib`)
-* **Agent Frameworks**: LangGraph, LangChain Core
-* **LLM Provider**: Groq Cloud (Llama-3.3-70b-versatile, Llama-3.1-8b-instant)
-* **Search APIs**: SerpAPI (Google Flights, Google Hotels, Google Maps)
+## Technology Stack
 
-## Installation and Run Instructions
+- **Backend:** Flask (Python), Python-Dotenv
+- **AI Agentic Layer:** LangGraph, LangChain Core, Pydantic, Groq Cloud API
+- **Data & APIs:** SerpAPI (Google Flights, Google Hotels, Google Maps), Supabase (PostgreSQL & Auth client)
+- **PDF Generation:** ReportLab
+- **Frontend:** Vanilla CSS3 (Custom design system), HTML5, Vanilla JavaScript
 
-1. Clone the repository and navigate to the directory:
+---
+
+
+### Prerequisites
+- Python 3.10+
+- A Supabase account (for database schema & auth)
+- API Keys for:
+  - Groq Console
+  - SerpAPI
+
+###  Installation & Setup
+
+1. **Clone the repository:**
    ```bash
+   git clone https://github.com/YOUR_USERNAME/voyageagent.git
    cd voyageagent
    ```
 
-2. Install the required dependencies:
+2. **Create a virtual environment and install dependencies:**
    ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file in the root folder with the following variables:
-   ```env
-   GROQ_API_KEY=your_groq_api_key
-   SERPAPI_API_KEY=your_serpapi_api_key
-   
-   # Database (Supabase)
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_KEY=your_supabase_key
-
-   # Email OTP (SMTP Server configuration)
-   SMTP_SERVER=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USERNAME=your_gmail_username
-   SMTP_PASSWORD=your_gmail_app_password
-   SMTP_SENDER=your_sender_email
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root folder and add the following keys:
+   ```ini
+   GROQ_API_KEY=your_groq_api_key_here
+   SERPAPI_API_KEY=your_serpapi_key_here
+   SUPABASE_URL=your_supabase_project_url_here
+   SUPABASE_KEY=your_supabase_anon_key_here
    ```
 
-4. Run the Flask application:
+4. **Initialize Database:**
+   Import the database schema in `supabase_schema.sql` into your Supabase SQL Editor to configure tables for users, sessions, and saved itineraries.
+
+5. **Run the Server:**
    ```bash
    python app.py
    ```
+   Open your browser and navigate to `http://127.0.0.1:5000` to start planning!
 
-5. Open your web browser and navigate to:
-   ```
-   http://localhost:5000/
-   ```
+---

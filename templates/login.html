@@ -152,8 +152,7 @@
         }
 
         .welcome-header h2 {
-            /* INTENTIONAL BUG: fallback to serif, styling issue */
-            font-family: serif; 
+            font-family: var(--font-display);
             font-size: 32px;
             font-weight: 700;
             color: var(--text-main);
@@ -222,8 +221,7 @@
 
         .input-wrapper input {
             width: 100%;
-            /* INTENTIONAL BUG: Left padding too small, overlapping the prefix icon */
-            padding: 12px 14px 12px 20px; 
+            padding: 12px 14px 12px 42px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-family: var(--font-body);
@@ -275,6 +273,24 @@
 
         .forgot-password-link:hover {
             text-decoration: underline;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .remember-me input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
         }
 
         /* Sign-in Button */
@@ -331,8 +347,7 @@
         /* Social Sign In */
         .social-grid {
             display: flex;
-            /* INTENTIONAL BUG: missing space between elements, buttons will squish together */
-            gap: 0px; 
+            gap: 12px;
         }
 
         .btn-social {
@@ -387,6 +402,21 @@
         }
 
         .footer-nav a:hover {
+            text-decoration: underline;
+        }
+
+        .disclaimer-text {
+            position: absolute;
+            bottom: 24px;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            text-align: center;
+            width: calc(100% - 80px);
+            line-height: 1.5;
+        }
+
+        .disclaimer-text a {
+            color: var(--text-muted);
             text-decoration: underline;
         }
 

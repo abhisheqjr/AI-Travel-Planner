@@ -3,350 +3,941 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoyageAgent: Chat UI</title>
-    <!-- Google Fonts: Inter and Outfit -->
+    <title>AI-Powered Travel Planner Dashboard</title>
+    <!-- Premium Google Fonts: Inter and Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
+    <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Style Sheet -->
+    <!-- Main Style Link -->
     <link rel="stylesheet" href="/static/css/style.css">
+    
+    <style>
+        /* Modern Fixed Account Menu Button & Dropdown */
+        .account-menu-container {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+        }
+        .account-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #ffffff;
+            color: #1e293b;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .account-menu-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+        }
+        .account-menu-btn .avatar-icon {
+            font-size: 15px;
+            color: #3b82f6;
+        }
+        .account-menu-btn .chevron-icon {
+            font-size: 9px;
+            color: #64748b;
+            transition: transform 0.2s ease;
+        }
+        .account-menu-container.active .chevron-icon {
+            transform: rotate(180deg);
+        }
+        .account-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: #ffffff;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 10px;
+            width: 150px;
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideDownMenu 0.2s ease-out forwards;
+            transform-origin: top right;
+        }
+        @keyframes slideDownMenu {
+            from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .account-dropdown.show {
+            display: flex;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .dropdown-item:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        .dropdown-item.logout-item {
+            color: #ef4444;
+        }
+        .dropdown-item.logout-item:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .dropdown-divider {
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+            margin: 0;
+        }
+
+        /* Premium Account Modal Styling */
+        .account-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeInOverlay 0.2s ease-out forwards;
+        }
+        .account-modal-card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 14px;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+            border: 1px solid rgba(15, 23, 42, 0.05);
+            animation: scaleInCard 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            position: relative;
+        }
+        .account-modal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .account-modal-header i {
+            font-size: 18px;
+            color: #3b82f6;
+            background: #eff6ff;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .account-modal-header h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+        .account-form-group {
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .account-form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .account-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .account-input-wrapper i.prefix-icon {
+            position: absolute;
+            left: 10px;
+            color: #64748b;
+            font-size: 13px;
+        }
+        .account-input-wrapper input {
+            width: 100%;
+            padding: 8px 10px 8px 30px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            color: #0f172a;
+            background-color: #f8fafc;
+            transition: all 0.2s;
+        }
+        .account-input-wrapper input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .account-input-wrapper input:disabled {
+            background-color: #e2e8f0;
+            color: #64748b;
+            cursor: not-allowed;
+            border-color: #cbd5e1;
+        }
+        .account-input-wrapper .input-right-icon {
+            position: absolute;
+            right: 10px;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .account-modal-error {
+            background-color: #fee2e2;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #b91c1c;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .account-btn-save {
+            flex: 1;
+            padding: 8px 12px;
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .account-btn-save:hover {
+            background: #1e293b;
+        }
+        .account-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Centered Logout Modal styling */
+        .logout-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeInOverlay 0.2s ease-out forwards;
+        }
+        .logout-modal-card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 14px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+            border: 1px solid rgba(15, 23, 42, 0.05);
+            animation: scaleInCard 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .logout-modal-icon {
+            width: 44px;
+            height: 44px;
+            background: #fef2f2;
+            color: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin: 0 auto 12px auto;
+            border: 1px solid rgba(239, 68, 68, 0.08);
+        }
+        .logout-modal-card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        .logout-modal-card p {
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            color: #64748b;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .logout-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .modal-btn-cancel {
+            flex: 1;
+            padding: 9px 15px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .modal-btn-cancel:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        .modal-btn-confirm {
+            flex: 1;
+            padding: 9px 15px;
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.15);
+        }
+        .modal-btn-confirm:hover {
+            background: #dc2626;
+            box-shadow: 0 6px 12px rgba(220, 38, 38, 0.35);
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleInCard {
+            from { transform: scale(0.9) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Background Gradient Accent Blobs for Aesthetic Premium Feel -->
-    <div class="gradient-accent-blob" style="top: 10%; left: 5%;"></div>
-    <div class="gradient-accent-blob" style="bottom: 10%; right: 5%;"></div>
 
-    <!-- Main Chat Workspace Card -->
-    <div class="chat-container">
-        <header class="chat-header">
-            <div class="header-logo">
-                <i class="fa-solid fa-compass-drafting logo-icon"></i>
-                <div>
-                    <h1>VoyageAgent</h1>
-                    <span class="sub-status">Agentic AI Travel Planner</span>
-                </div>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="btn-show-features" class="new-chat-btn" title="View Features" style="background-color: #f8fafc;">
-                    <i class="fa-solid fa-star" style="color: #eab308;"></i> Toolkit
-                </button>
-                <button id="btn-new-chat" class="new-chat-btn" title="New Chat">
-                    <i class="fa-solid fa-pen-to-square"></i> New Chat
-                </button>
-            </div>
-        </header>
-
-        <!-- Message feed -->
-        <div class="chat-feed" id="chatFeed">
-            <div class="chat-bubble bot">
-                <p>Welcome to VoyageAgent! Tell me about your dream getaway (destination, budget level, travel dates, travelers, and interests) to plan your perfect trip.</p>
-            </div>
+    <!-- Premium Account Dropdown on Top Right -->
+    <div class="account-menu-container" id="accountMenuContainer">
+        <button class="account-menu-btn" onclick="toggleAccountDropdown()" id="accountMenuBtn">
+            <i class="fa-solid fa-circle-user avatar-icon"></i>
+            <span id="headerUsername">Account</span>
+            <i class="fa-solid fa-chevron-down chevron-icon"></i>
+        </button>
+        <div class="account-dropdown" id="accountDropdown">
+            <button class="dropdown-item" onclick="openAccountModal()">
+                <i class="fa-solid fa-user-gear"></i> Account
+            </button>
+            <hr class="dropdown-divider">
+            <button class="dropdown-item logout-item" onclick="showLogoutModal()">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
         </div>
-
-        <!-- Chat inputs footer -->
-        <footer class="chat-footer">
-            <form id="chatForm" class="input-container">
-                <input type="text" id="userInput" placeholder="Ask VoyageAgent to plan a trip..." required autocomplete="off">
-                <button type="submit" class="send-btn" id="sendBtn">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </form>
-        </footer>
     </div>
 
-    <!-- Dynamic Overlay Panel (Initially Inactive) -->
-    <div class="inactive-dashboard-overlay" id="overlay-features">
-        <div class="param-confirm-card" style="background: #ffffff; max-width: 520px; padding: 24px; border-radius: 16px; margin: auto; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 18px;"><i class="fa-solid fa-suitcase-rolling" style="color: var(--primary);"></i> VoyageAgent Quick Toolkit</h3>
-                <button id="btn-close-features" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted);">&times;</button>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5;">
-                Welcome to the companion utility toolbox. Access secondary operations here to customize your itinerary or run calculations manually.
-            </p>
+    <!-- Account Details & Editing Modal -->
+    <div id="accountModal" class="account-modal-overlay" onclick="handleAccountOverlayClick(event)">
+        <div class="account-modal-card">
+            <!-- Close button -->
+            <button onclick="closeAccountModal()" style="position: absolute; top: 12px; right: 12px; border: none; background: none; font-size: 14px; color: #64748b; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer; hover: background: #f8fafc;" onclick="window._triggerLocalPacking()">
-                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-clipboard-list" style="color: #10b981;"></i> Packing Helper</h4>
-                    <span style="font-size: 11px; color: var(--text-muted);">Suggest customized items for your interests.</span>
+            <!-- Standard Edit Form View -->
+            <div id="accountModalView">
+                <div class="account-modal-header">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <h3>Account Settings</h3>
                 </div>
-                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._triggerLocalBudgetForecast()">
-                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-coins" style="color: #f59e0b;"></i> Budget Estimate</h4>
-                    <span style="font-size: 11px; color: var(--text-muted);">Estimate costs based on travel volume.</span>
-                </div>
-                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._triggerFeedbackTrigger()">
-                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-comment-dots" style="color: #6366f1;"></i> Submit Feedback</h4>
-                    <span style="font-size: 11px; color: var(--text-muted);">Rate your generated travel itinerary details.</span>
-                </div>
-                <div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; cursor: pointer;" onclick="window._showFaqSection()">
-                    <h4 style="font-size: 13px; margin-bottom: 4px;"><i class="fa-solid fa-circle-question" style="color: #ec4899;"></i> Travel FAQ</h4>
-                    <span style="font-size: 11px; color: var(--text-muted);">Read helpful planning tips and app guides.</span>
-                </div>
-            </div>
-            
-            <div style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px; text-align: right;">
-                <button id="btn-close-features-ok" class="param-btn confirm" style="width: auto; padding: 8px 20px;">Got it</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification Overlay (For System Messages) -->
-    <div id="appToast" class="toast-alert-badge">
-        <i class="fa-solid fa-circle-info" style="color: var(--primary);"></i>
-        <span id="toastMessage">Default system status active.</span>
-    </div>
-
-    <!-- Hidden Diagnostic Console Panel for Offline Debugging -->
-    <div class="dev-diag-panel" id="devDiagPanel">
-        [SYSTEM LOGS - OFFLINE AGENT INITIALIZATION COMPLETED]
-    </div>
-
-    <!-- Help & FAQ Section Modal Template Drawer Content -->
-    <template id="faq-template">
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: How does VoyageAgent build travel plans?</h4>
-                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: VoyageAgent parses user prompts (destination, dates, budget level) to draft a tailored day-by-day plan using LLMs coupled with local heuristic checks.</p>
-            </div>
-            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: Can I edit the plan after it is generated?</h4>
-                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Yes! A parameter confirmation card allows you to verify/re-edit key values before the agent commits to generating the final itinerary plan.</p>
-            </div>
-            <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: Is currency conversion based on live rates?</h4>
-                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Calculations utilize base estimated exchange rates cached locally to remain offline-compatible. They are approximate.</p>
-            </div>
-            <div>
-                <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b;">Q: How do I clear the conversation?</h4>
-                <p style="font-size: 12px; color: #64748b; margin-top: 4px;">A: Click the "New Chat" button in the upper header layout at any time to wipe current history and begin a fresh itinerary discussion.</p>
-            </div>
-        </div>
-    </template>
-
-    <!-- Preset Packing List Categories Template for specific trips -->
-    <template id="packing-templates">
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏖️ Beach & Resort Pack List</span>
-                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Sandals, swimwear, high protection UV lotion, wide hats, waterproof pouch.</p>
-            </div>
-            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏔️ Mountain & Hiking Pack List</span>
-                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Comfort trekking boots, matches, navigation maps, insulation fleece layers.</p>
-            </div>
-            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">🏙️ City Exploration Pack List</span>
-                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Light walking shoes, transit guides, battery power bank, anti-theft shoulder pack.</p>
-            </div>
-            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">💼 Business & Work Pack List</span>
-                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Laptop chargers, notepad, conference badges, business casual clothing sets.</p>
-            </div>
-            <div>
-                <span style="font-weight: 700; font-size: 12px; color: var(--primary);">❄️ Winter & Snow Sports Pack List</span>
-                <p style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Thermal base underwear layers, windproof shell, ski goggles, warm gloves, insulated socks.</p>
-            </div>
-        </div>
-    </template>
-
-    <!-- Detailed Inline Documentation and Structural SVG Assets to Meet target layout volume constraints -->
-    <!--
-      VOYAGEAGENT COMPANION MANUAL & USER GUIDE:
-      
-      Overview:
-      VoyageAgent is an agentic AI assistant crafted to simplify travel planning.
-      By talking to the conversational interface, you can draft plans organically.
-      
-      Available Workflow Parameters:
-      1. Origin: The airport, city, or coordinate zone you are starting from.
-      2. Destination: The primary travel location you target.
-      3. Dates: The range of travel. Formatted as YYYY-MM-DD to YYYY-MM-DD.
-      4. Budget: Standard categories (Low, Mid-Range, Luxury).
-      5. Interests: Keywords like beaches, family, hiking, or historical sites.
-      6. Travelers: Number of people in the party.
-      
-      Offline Features:
-      The tool utilizes state-of-the-art interactive CSS and pure JS controllers.
-      If connection is lost, it displays structured fallbacks gracefully.
-      
-      Keyboard Shortcuts:
-      - Press Enter in input form to send messages.
-      - Press Escape to close modal drawers and widget selectors.
-      
-      Telemetry Logs:
-      Information about navigation paths is handled anonymously to support
-      performance optimization. No personal identifiers are transmitted.
-      
-      Detailed Setup Steps:
-      - Install python dependencies: pip install flask requests
-      - Setup SMTP Server parameters in your environment (SMTP_SERVER, SMTP_PORT, SENDER_EMAIL, etc.)
-      - Setup Supabase Connection strings for production sessions.
-      - Launch backend application: python app.py
-      - Access standard UI at http://localhost:5000
-      
-      Core Layout Structure:
-      - Header Container holds Logo details, app status tags, Reset and Toolkit triggers.
-      - Chat Feed displays messages with dynamic scrolling and overflow.
-      - Interactive Cards handle inline verification flows without navigating away.
-      - Input Footer features a clean, responsive layout design.
-      
-      Heuristic Budget Scoring Rules:
-      - Low budget tier: Focused on street food, free parks, public transit.
-      - Mid budget tier: Comfortable hotels, mid-tier restaurants, guided museum walks.
-      - Luxury tier: Premium suites, private transfer services, fine dining.
-      
-      Heuristic Route Selection Constraints:
-      - Origin and Destination checks prevent circular routes.
-      - Date parser ensures end date occurs after start date.
-      
-      Developer Notes:
-      - Modifying layout files requires rebuilding static caches when applicable.
-      - CSS variable fallback hierarchy ensures styling looks modern on legacy systems.
-      - JavaScript triggers verification events via the parameters confirmation grid.
-      - Event listeners must be cleaned up properly on Reset Chat commands.
-      - HTML5 elements must adhere to SEO constraints and descriptive IDs.
-      
-      International Travel Compliance Guidelines:
-      - Ensure passport validity exceeds 6 months from entry date.
-      - Confirm visa-on-arrival eligibility status prior to booking confirmation actions.
-      - Verify local health advisory recommendations, mandatory vaccinations, and transit zones.
-      - Review standard baggage limits for regional carriers and domestic connecting airlines.
-      - Back up physical copies of travel insurance coverage policies in high-risk zones.
-      
-      Emergency Contact References:
-      - Local embassy locations should be pinned on offline maps in destinations.
-      - Maintain access to credit card hotlines to report losses or unexpected freezes.
-      - Save local emergency responder dial numbers (e.g., 112 in Europe, 911 in North America).
-      
-      Additional Packing Category Lists:
-      - High-altitude climbs: Add supplemental oxygen guidelines, specialized satellite messengers, and climbing harness checks.
-      - Desert treks: Add physical heat hydration formulas, sand gaiters, solar phone charger setups.
-      - Cruising voyages: Include formal evening gowns, motion sickness wrist bands, magnetic cabin hangers.
-      
-      Additional SVG Map icon components and placeholder drawings:
-    -->
-    <svg style="display: none;">
-        <symbol id="icon-compass" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M8 16l2 -6l6 -2l-2 6l-6 2" />
-            <circle cx="12" cy="12" r="9" />
-        </symbol>
-        <symbol id="icon-calendar" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <rect x="4" y="5" width="16" height="16" rx="2" />
-            <line x1="16" y1="3" x2="16" y2="7" />
-            <line x1="8" y1="3" x2="8" y2="7" />
-            <line x1="4" y1="11" x2="20" y2="11" />
-            <rect x="8" y="15" width="2" height="2" />
-        </symbol>
-        <symbol id="icon-wallet" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" />
-            <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" />
-        </symbol>
-        <symbol id="icon-users" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <circle cx="9" cy="7" r="4" />
-            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
-        </symbol>
-        <symbol id="icon-info" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <circle cx="12" cy="12" r="9" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-            <line x1="12" y1="12" x2="12" y2="16" />
-        </symbol>
-        <symbol id="icon-check" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <polyline points="20 6 9 17 4 12" />
-        </symbol>
-        <symbol id="icon-trash" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <line x1="10" y1="11" x2="10" y2="17" />
-            <line x1="14" y1="11" x2="14" y2="17" />
-        </symbol>
-        <symbol id="icon-settings" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </symbol>
-    </svg>
-
-    <!-- Additional Inline UI Script Bindings -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const overlay = document.getElementById("overlay-features");
-            const btnShow = document.getElementById("btn-show-features");
-            const btnClose = document.getElementById("btn-close-features");
-            const btnCloseOk = document.getElementById("btn-close-features-ok");
-            const toast = document.getElementById("appToast");
-            const toastMessage = document.getElementById("toastMessage");
-
-            // Toggle Companion Features Toolkit View Overlay
-            btnShow.addEventListener("click", () => {
-                overlay.style.display = "flex";
-                setTimeout(() => {
-                    overlay.classList.add("active");
-                }, 20);
-                showToast("Opened utility toolkit!");
-            });
-
-            const hideFeatures = () => {
-                overlay.classList.remove("active");
-                setTimeout(() => {
-                    overlay.style.display = "none";
-                }, 250);
-            };
-
-            btnClose.addEventListener("click", hideFeatures);
-            btnCloseOk.addEventListener("click", hideFeatures);
-
-            // Toast feedback popup trigger
-            window.showToast = (msg, durationMs = 2500) => {
-                toastMessage.textContent = msg;
-                toast.classList.add("show");
-                setTimeout(() => {
-                    toast.classList.remove("show");
-                }, durationMs);
-            };
-
-            // Global shortcut triggers mapped to app.js handlers
-            window._triggerLocalPacking = () => {
-                hideFeatures();
-                if (typeof window.UIWidgetsController !== "undefined" || window.showPackingHelper) {
-                    window.showPackingHelper("beach nature hiking photography");
-                } else {
-                    // Fallback alert modal
-                    alert("Packing Helper initialized! Add your destination in chat first.");
-                }
-            };
-
-            window._triggerLocalBudgetForecast = () => {
-                hideFeatures();
-                alert("Budget calculator triggered: Default setup is Mid-range, 3 travelers, 5 days.");
-            };
-
-            window._triggerFeedbackTrigger = () => {
-                hideFeatures();
-                showToast("Feedback form triggered!");
-                const comments = prompt("Let us know what you think about VoyageAgent:");
-                if (comments) {
-                    showToast("Thank you for your feedback!");
-                }
-            };
-
-            window._showFaqSection = () => {
-                hideFeatures();
-                const temp = document.getElementById("faq-template");
-                const clone = temp.content.cloneNode(true);
-                const tempDiv = document.createElement("div");
-                tempDiv.appendChild(clone);
                 
-                // Show as modal alert
-                alert("VoyageAgent FAQs:\n\n1. How are itineraries generated? Using LLM models and date parser fixes.\n2. Can I re-edit details? Yes, via the confirm card inputs.\n3. Offline storage? Cached client-side settings.\n4. Reset conversation? Click New Chat in header.");
-            };
+                <div class="account-modal-error" id="accountModalError">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="accountModalErrorMsg">Error message</span>
+                </div>
+                
+                <form id="accountEditForm" onsubmit="handleAccountSubmit(event)">
+                    <div class="account-form-group">
+                        <label for="accUsername">Username</label>
+                        <div class="account-input-wrapper">
+                            <i class="fa-solid fa-user prefix-icon"></i>
+                            <input type="text" id="accUsername" required autocomplete="username" disabled>
+                            <i class="fa-solid fa-pencil input-right-icon" id="accUsernameEditIcon" onclick="enableUsernameEditing()" style="cursor: pointer;" title="Edit username"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="account-form-group">
+                        <label for="accEmail">Email Address</label>
+                        <div class="account-input-wrapper">
+                            <i class="fa-solid fa-envelope prefix-icon"></i>
+                            <input type="email" id="accEmail" disabled style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
+                            <i class="fa-solid fa-lock input-right-icon" style="cursor: not-allowed; opacity: 0.6;" title="Email cannot be changed"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Password View Group (Starts visible) -->
+                    <div class="account-form-group" id="accPasswordViewGroup">
+                        <label>Password</label>
+                        <div class="account-input-wrapper">
+                            <i class="fa-solid fa-lock prefix-icon"></i>
+                            <input type="password" id="accPasswordMasked" value="********" disabled style="background-color: #f1f5f9; color: #64748b; cursor: not-allowed;">
+                            <i class="fa-solid fa-pencil input-right-icon" id="accPasswordEditIcon" onclick="enablePasswordEditing()" style="cursor: pointer;" title="Edit password"></i>
+                        </div>
+                    </div>
+
+                    <!-- Password Edit Group (Starts hidden) -->
+                    <div id="accPasswordEditGroup" style="display: none;">
+                        <div class="account-form-group">
+                            <label for="accNewPassword">New Password</label>
+                            <div class="account-input-wrapper">
+                                <i class="fa-solid fa-lock prefix-icon"></i>
+                                <input type="password" id="accNewPassword" placeholder="Enter new password" autocomplete="new-password">
+                                <i class="fa-solid fa-eye input-right-icon" id="accNewPasswordToggle" onclick="toggleAccNewPasswordVisibility()"></i>
+                            </div>
+                        </div>
+                        <div class="account-form-group">
+                            <label for="accConfirmPassword">Confirm New Password</label>
+                            <div class="account-input-wrapper">
+                                <i class="fa-solid fa-shield prefix-icon"></i>
+                                <input type="password" id="accConfirmPassword" placeholder="Confirm new password" autocomplete="new-password">
+                                <i class="fa-solid fa-eye input-right-icon" id="accConfirmPasswordToggle" onclick="toggleAccConfirmPasswordVisibility()"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="account-modal-actions">
+                        <button type="submit" class="account-btn-save" id="btnAccountSave">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                        </button>
+                        <button type="button" class="modal-btn-cancel" onclick="closeAccountModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- OTP Verification View -->
+            <div id="accountOtpView" style="display: none;">
+                <div class="account-modal-header">
+                    <i class="fa-solid fa-shield-halved" style="color: #10b981; background: #ecfdf5;"></i>
+                    <h3>Verify Changes</h3>
+                </div>
+                
+                <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 16px; margin-top: 0; text-align: center;">
+                    We have sent a 6-digit verification code to your email. Enter it below to save changes.
+                </p>
+                
+                <div class="account-modal-error" id="accountOtpError" style="margin-bottom: 12px;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="accountOtpErrorMsg">Invalid verification code.</span>
+                </div>
+                
+                <form id="accountOtpForm" onsubmit="handleAccountOtpSubmit(event)">
+                    <div class="account-form-group" style="text-align: center;">
+                        <label for="accOtpCode" style="display: block; text-align: center;">6-Digit Verification Code</label>
+                        <div class="account-input-wrapper" style="justify-content: center;">
+                            <input type="text" id="accOtpCode" required max-length="6" placeholder="" autocomplete="one-time-code" style="letter-spacing: 4px; text-align: center; font-size: 16px; font-weight: 700; padding: 10px;">
+                        </div>
+                    </div>
+                    
+                    <div class="account-modal-actions">
+                        <button type="button" class="modal-btn-cancel" onclick="showAccountEditForm()">Back</button>
+                        <button type="submit" class="account-btn-save" id="btnAccountOtpVerify" style="background-color: #10b981;">
+                            <i class="fa-solid fa-circle-check"></i> Verify & Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="logout-modal-overlay" onclick="handleOverlayClick(event)">
+        <div class="logout-modal-card">
+            <div class="logout-modal-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to log out of your travel planner dashboard?</p>
+            <div class="logout-modal-actions">
+                <button class="modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+                <a href="/logout" class="modal-btn-confirm">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Dashboard Grid Container -->
+    <div class="dashboard-container">
+        
+        <!-- SIDEBAR LEFT: Chatbot Interface -->
+        <aside class="chat-sidebar">
+            <header class="chat-header">
+                <div class="brand-logo" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fa-solid fa-compass-drafting logo-icon"></i>
+                        <div>
+                            <h1>VoyageAgent</h1>
+                            <span class="sub-status">Agentic AI Travel Planner</span>
+                        </div>
+                    </div>
+                    <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
+                        <button id="btn-history" class="icon-btn" title="Chat History"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                        <button id="btn-new-chat" class="icon-btn" title="New Chat"><i class="fa-solid fa-pen-to-square"></i></button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- History Overlay Panel -->
+            <div id="history-panel" class="history-panel hidden">
+                <div class="history-header">
+                    <h2>Past Conversations</h2>
+                    <button id="btn-close-history" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="history-list" id="history-list">
+                    <!-- Session items will be dynamically injected here -->
+                </div>
+            </div>
+
+            <!-- Message feed scroll-pane -->
+            <div class="chat-feed" id="chatFeed">
+                <!-- Greeting message -->
+                <div class="chat-bubble bot">
+                    <p>Welcome! Tell me about your dream getaway (e.g., destination, budget, length, and interests) to build an amazing visual plan for you!</p>
+                </div>
+            </div>
+
+            <!-- Chat inputs footer -->
+            <footer class="chat-footer">
+                <form id="chatForm" class="input-container">
+                    <input type="text" id="userInput" placeholder="Tell me more about your preferences..." required autocomplete="off">
+                    <button type="submit" class="send-btn" id="sendBtn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </footer>
+        </aside>
+
+        <!-- MAIN PANEL RIGHT: Visual High-Fidelity Itinerary Display -->
+        <main class="itinerary-display">
+
+            <div class="display-welcome" id="displayWelcome">
+                <div class="welcome-card">
+                    <i class="fa-solid fa-map-location-dot welcome-icon"></i>
+                    <h2>Your Travel Board</h2>
+                    <p>Enter your travel desires on the chat sidebar. Your highly detailed timeline, hotel features, and top dining recommendations will display beautifully right here!</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Itinerary Output Content -->
+            <div class="itinerary-wrapper hidden" id="itineraryWrapper">
+                
+                <!-- Destination Banner Header -->
+                <header class="itinerary-hero" id="itineraryHero">
+                    <div class="hero-content">
+                        <span class="date-badge" id="itineraryDuration"></span>
+                        <h2 id="itineraryTitle"></h2>
+                        <div class="meta-row">
+                            <span class="budget-badge" id="itineraryBudget"></span>
+                            <span class="budget-badge" id="itineraryCostEst" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);"></span>
+                            <button class="pdf-btn" id="downloadPdfBtn">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Section 1: Getting There (Transport) -->
+                <section class="itinerary-section transport-section">
+                    <h3 class="section-title"><i class="fa-solid fa-plane-departure"></i> Getting There</h3>
+                    <div class="transport-grid" id="transportGrid">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+                <!-- Section 1b: Getting Back (Return Transport) -->
+                <section class="itinerary-section transport-section" id="returnTransportSection" style="display:none;">
+                    <h3 class="section-title"><i class="fa-solid fa-plane-arrival"></i> Getting Back</h3>
+                    <div class="transport-grid" id="returnTransportGrid">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+                <!-- Section 2: Where to Stay (Hotels) -->
+                <section class="itinerary-section stay-options-section">
+                    <h3 class="section-title"><i class="fa-solid fa-hotel"></i> Where to Stay</h3>
+                    <div class="hotels-grid" id="hotelsGrid">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+                <!-- Section 3: Local Food & Famous Restaurants -->
+                <section class="itinerary-section food-options-section">
+                    <h3 class="section-title"><i class="fa-solid fa-utensils"></i> Famous Food & Dining</h3>
+                    <div class="food-grid" id="foodGrid">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+                <!-- Section 4: Attractions & Spots to Visit -->
+                <section class="itinerary-section attractions-options-section">
+                    <h3 class="section-title"><i class="fa-solid fa-camera-retro"></i> Top Spots to Visit</h3>
+                    <div class="attractions-grid" id="attractionsGrid">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+                <!-- Section 5: Day-by-Day Plan -->
+                <section class="itinerary-section timeline-section">
+                    <h3 class="section-title"><i class="fa-solid fa-route"></i> Day-by-Day Proposed Plan</h3>
+                    <div class="timeline-container" id="timelineContainer">
+                        <!-- Filled Dynamically -->
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal & Account Menu scripts -->
+    <script>
+        // Global state details
+        let currentUserEmail = "";
+
+        // Page load: fetch user details
+        document.addEventListener("DOMContentLoaded", () => {
+            loadAccountHeaderDetails();
+            
+            // Close dropdown if user clicks outside of it
+            window.addEventListener("click", (e) => {
+                const container = document.getElementById("accountMenuContainer");
+                const dropdown = document.getElementById("accountDropdown");
+                if (container && !container.contains(e.target)) {
+                    dropdown.classList.remove("show");
+                    container.classList.remove("active");
+                }
+            });
         });
+
+        async function loadAccountHeaderDetails() {
+            try {
+                const res = await fetch("/api/account/details");
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById("headerUsername").textContent = data.username;
+                    currentUserEmail = data.email;
+                }
+            } catch (e) {
+                console.error("Failed to load header user details", e);
+            }
+        }
+
+        // Account Dropdown Toggle
+        function toggleAccountDropdown() {
+            const container = document.getElementById("accountMenuContainer");
+            const dropdown = document.getElementById("accountDropdown");
+            dropdown.classList.toggle("show");
+            container.classList.toggle("active");
+        }
+
+        // Logout Confirmation Modal
+        function showLogoutModal() {
+            // Close dropdown first
+            document.getElementById("accountDropdown").classList.remove("show");
+            document.getElementById("accountMenuContainer").classList.remove("active");
+            
+            document.getElementById('logoutModal').style.display = 'flex';
+        }
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').style.display = 'none';
+        }
+        function handleOverlayClick(e) {
+            if (e.target.id === 'logoutModal') {
+                closeLogoutModal();
+            }
+        }
+
+        // Editing state flags
+        let isUsernameEditing = false;
+        let isPasswordEditing = false;
+
+        function enableUsernameEditing() {
+            const usernameInput = document.getElementById("accUsername");
+            const editIcon = document.getElementById("accUsernameEditIcon");
+            
+            isUsernameEditing = true;
+            usernameInput.disabled = false;
+            usernameInput.focus();
+            usernameInput.select();
+            editIcon.className = "fa-solid fa-check input-right-icon";
+            editIcon.style.color = "#10b981";
+            editIcon.title = "Username editing active";
+        }
+
+        function enablePasswordEditing() {
+            isPasswordEditing = true;
+            document.getElementById("accPasswordViewGroup").style.display = "none";
+            document.getElementById("accPasswordEditGroup").style.display = "block";
+            document.getElementById("accNewPassword").focus();
+        }
+
+        function toggleAccNewPasswordVisibility() {
+            const pwdInput = document.getElementById("accNewPassword");
+            const toggleIcon = document.getElementById("accNewPasswordToggle");
+            if (pwdInput.type === "password") {
+                pwdInput.type = "text";
+                toggleIcon.className = "fa-solid fa-eye-slash input-right-icon";
+            } else {
+                pwdInput.type = "password";
+                toggleIcon.className = "fa-solid fa-eye input-right-icon";
+            }
+        }
+
+        function toggleAccConfirmPasswordVisibility() {
+            const pwdInput = document.getElementById("accConfirmPassword");
+            const toggleIcon = document.getElementById("accConfirmPasswordToggle");
+            if (pwdInput.type === "password") {
+                pwdInput.type = "text";
+                toggleIcon.className = "fa-solid fa-eye-slash input-right-icon";
+            } else {
+                pwdInput.type = "password";
+                toggleIcon.className = "fa-solid fa-eye input-right-icon";
+            }
+        }
+
+        // Account Settings Modal
+        async function openAccountModal() {
+            // Close dropdown first
+            document.getElementById("accountDropdown").classList.remove("show");
+            document.getElementById("accountMenuContainer").classList.remove("active");
+
+            // Reset errors
+            document.getElementById("accountModalError").style.display = "none";
+            document.getElementById("accountOtpError").style.display = "none";
+            
+            // Reset edit flags
+            isUsernameEditing = false;
+            isPasswordEditing = false;
+
+            // Reset inputs & view
+            const usernameInput = document.getElementById("accUsername");
+            usernameInput.disabled = true;
+            usernameInput.value = "Loading...";
+            
+            const editIcon = document.getElementById("accUsernameEditIcon");
+            editIcon.className = "fa-solid fa-pencil input-right-icon";
+            editIcon.style.color = "";
+            editIcon.title = "Edit username";
+
+            document.getElementById("accEmail").value = "Loading...";
+            
+            document.getElementById("accPasswordViewGroup").style.display = "block";
+            document.getElementById("accPasswordEditGroup").style.display = "none";
+            document.getElementById("accNewPassword").value = "";
+            document.getElementById("accConfirmPassword").value = "";
+
+            // Switch to form view
+            showAccountEditForm();
+
+            // Open overlay
+            document.getElementById('accountModal').style.display = 'flex';
+
+            try {
+                const res = await fetch("/api/account/details");
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById("accUsername").value = data.username;
+                    document.getElementById("accEmail").value = data.email;
+                    currentUserEmail = data.email;
+                } else {
+                    document.getElementById("accountModalErrorMsg").textContent = "Failed to load account details.";
+                    document.getElementById("accountModalError").style.display = "flex";
+                }
+            } catch (e) {
+                document.getElementById("accountModalErrorMsg").textContent = "Error loading details.";
+                document.getElementById("accountModalError").style.display = "flex";
+            }
+        }
+
+        function closeAccountModal() {
+            document.getElementById('accountModal').style.display = 'none';
+        }
+
+        function handleAccountOverlayClick(e) {
+            if (e.target.id === 'accountModal') {
+                closeAccountModal();
+            }
+        }
+
+        // Switch panel views
+        function showAccountOtpView() {
+            document.getElementById("accountModalView").style.display = "none";
+            document.getElementById("accountOtpView").style.display = "block";
+        }
+
+        function showAccountEditForm() {
+            document.getElementById("accountOtpView").style.display = "none";
+            document.getElementById("accountModalView").style.display = "block";
+        }
+
+        // Handle Form Submit (Requests OTP changes)
+        async function handleAccountSubmit(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById("accUsername").value.trim();
+            const btnSave = document.getElementById("btnAccountSave");
+            const errBanner = document.getElementById("accountModalError");
+            const errBannerMsg = document.getElementById("accountModalErrorMsg");
+
+            errBanner.style.display = "none";
+
+            // If nothing changed, let's inform the user or just allow proceeding
+            let password = "";
+            if (isPasswordEditing) {
+                const newPassword = document.getElementById("accNewPassword").value;
+                const confirmPassword = document.getElementById("accConfirmPassword").value;
+                
+                if (!newPassword) {
+                    errBannerMsg.textContent = "Please enter a new password.";
+                    errBanner.style.display = "flex";
+                    return;
+                }
+                if (newPassword !== confirmPassword) {
+                    errBannerMsg.textContent = "Passwords do not match.";
+                    errBanner.style.display = "flex";
+                    return;
+                }
+                password = newPassword;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...`;
+
+            try {
+                const response = await fetch("/api/account/send-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // Switch to OTP view
+                    showAccountOtpView();
+                    document.getElementById("accOtpCode").value = "";
+                    document.getElementById("accOtpCode").focus();
+                } else {
+                    errBannerMsg.textContent = data.error || "Failed to update profile settings.";
+                    errBanner.style.display = "flex";
+                }
+            } catch (err) {
+                console.error(err);
+                errBannerMsg.textContent = "Network error. Please try again.";
+                errBanner.style.display = "flex";
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Changes`;
+            }
+        }
+
+        // Handle OTP Verification Submit
+        async function handleAccountOtpSubmit(e) {
+            e.preventDefault();
+            
+            const otpCode = document.getElementById("accOtpCode").value.trim();
+            const btnVerify = document.getElementById("btnAccountOtpVerify");
+            const errBanner = document.getElementById("accountOtpError");
+            const errBannerMsg = document.getElementById("accountOtpErrorMsg");
+
+            errBanner.style.display = "none";
+            btnVerify.disabled = true;
+            btnVerify.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...`;
+
+            try {
+                const response = await fetch("/api/account/verify-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ otp: otpCode })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // Success! Close modal and update header username
+                    closeAccountModal();
+                    document.getElementById("headerUsername").textContent = data.username;
+                    
+                    // Simple toast notification
+                    const successToast = document.createElement("div");
+                    successToast.style.cssText = `
+                        position: fixed;
+                        bottom: 24px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: #d1fae5;
+                        color: #065f46;
+                        border: 1px solid #10b981;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        z-index: 99999;
+                        font-weight: 600;
+                        font-size: 11.5px;
+                        font-family: 'Inter', sans-serif;
+                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+                    `;
+                    successToast.innerHTML = `<i class="fa-solid fa-circle-check"></i> Account updated successfully!`;
+                    document.body.appendChild(successToast);
+                    setTimeout(() => successToast.remove(), 3000);
+                } else {
+                    errBannerMsg.textContent = data.error || "Invalid or expired OTP.";
+                    errBanner.style.display = "flex";
+                }
+            } catch (err) {
+                console.error(err);
+                errBannerMsg.textContent = "Network error. Please try again.";
+                errBanner.style.display = "flex";
+            } finally {
+                btnVerify.disabled = false;
+                btnVerify.innerHTML = `<i class="fa-solid fa-circle-check"></i> Verify & Save`;
+            }
+        }
     </script>
 
-    <!-- Script -->
+    <!-- Main JS Application script -->
     <script src="/static/js/app.js"></script>
 </body>
 </html>
