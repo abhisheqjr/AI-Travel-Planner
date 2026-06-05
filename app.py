@@ -2348,8 +2348,9 @@ def get_pdf_image(url, width=100, height=75):
         return None
     try:
         import hashlib
+        import tempfile
         h = hashlib.md5(url.encode()).hexdigest()
-        temp_dir = os.path.join(os.path.dirname(__file__), "static", "temp_pdf_imgs")
+        temp_dir = os.path.join(tempfile.gettempdir(), "temp_pdf_imgs")
         os.makedirs(temp_dir, exist_ok=True)
         temp_path = os.path.join(temp_dir, f"{h}.jpg")
         
@@ -2384,11 +2385,12 @@ def download_pdf():
         budget = itinerary.get("budget", "")
         tips = itinerary.get("travel_tips", [])
 
+        import io
         filename = f"Itinerary_{dest.replace(' ', '_').replace(',', '')}.pdf"
-        pdf_path = os.path.join(os.path.dirname(__file__), filename)
+        pdf_buffer = io.BytesIO()
 
         # Standard margins for brochure style
-        doc = SimpleDocTemplate(pdf_path, pagesize=letter,
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=letter,
                                 rightMargin=40, leftMargin=40,
                                 topMargin=40, bottomMargin=40)
         styles = getSampleStyleSheet()
@@ -2606,7 +2608,8 @@ def download_pdf():
             story.append(KeepTogether(tip_story))
 
         doc.build(story)
-        return send_file(pdf_path, as_attachment=True, download_name=filename)
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
 
     except Exception as e:
         import traceback
