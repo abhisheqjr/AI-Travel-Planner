@@ -73,4 +73,4 @@ VoyageAgent is a high-fidelity, premium AI-powered travel planner that creates c
 ## Deployment
 
 This project is deployed using Vercel. Use the below link to access:
-- [VoyageAgent Live App](https://your-vercel-deployment-url.vercel.app)
+- [VoyageAgent Live App](https://ai-travel-planner-rouge-nine.vercel.app/)
